@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: workout-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_HOST_PORT}:5432" # avoid opsboard's 5432
+    volumes:
+      - workout_pgdata:/var/lib/postgresql/data
+    networks:
+      - workout_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: workout-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "${PGADMIN_HOST_PORT}:80" # avoid opsboard's 5050
+    depends_on:
+      - postgres
+    networks:
+      - workout_net
+    volumes:
+      - workout_pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workout-django-api
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "${DJANGO_HOST_PORT}:8000" # avoid opsboard's 8001
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: ${DJANGO_DEBUG}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+    depends_on:
+      - postgres
+    networks:
+      - workout_net
+    command: |
+      sh -c '
+        python -m pip install --no-cache-dir -r requirements.txt
+
+        echo "Waiting for Postgres..."
+        python - <<PY
+      import os, time, psycopg
+      host=os.getenv("DB_HOST")
+      port=os.getenv("DB_PORT","5432")
+      db=os.getenv("DB_NAME")
+      user=os.getenv("DB_USER")
+      pw=os.getenv("DB_PASSWORD")
+
+      for i in range(60):
+          try:
+              psycopg.connect(host=host, port=port, dbname=db, user=user, password=pw, connect_timeout=2).close()
+              print("Postgres is ready")
+              break
+          except Exception as e:
+              print(f"Waiting... {i+1}/60 ({e})")
+              time.sleep(1)
+      else:
+          raise SystemExit("Postgres not reachable")
+      PY
+
+        python manage.py migrate
+        python manage.py runserver 0.0.0.0:8000 --noreload
+      '
+    restart: unless-stopped
+
+volumes:
+  workout_pgdata:
+  workout_pgadmin_data:
+
+networks:
+  workout_net:
+    name: workout_net
+    driver: bridge
