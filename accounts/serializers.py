@@ -2,6 +2,7 @@ from django.contrib.auth import (
     get_user_model,
     authenticate,
 )
+from django.contrib.auth.password_validation import validate_password
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 from .models import Profile
@@ -12,7 +13,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     class Meta:
         model = User
-        fields = ['username', 'email', 'password']
+        fields = ["username", "email", "password", "first_name", "last_name"]
 
     def validate_password(self, value):
         validate_password(value)
@@ -20,14 +21,16 @@ class RegisterSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         user = User.objects.create_user(
-            username = validated_data('username'),
-            email = validated_data('email'),
-            password = validated_data('password')
+            username = validated_data['username'],
+            email = validated_data['email'],
+            password = validated_data['password'],
+            first_name = validated_data['first_name'],
+            last_name = validated_data['last_name'],
         )
         return user
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    username = serializers.CharField()
     password = serializers.CharField(
         style={
             'input_type': 'password'
@@ -35,14 +38,16 @@ class LoginSerializer(serializers.Serializer):
         trim_whitespace=False
     )
     def validate(self, attrs):
+        username = attrs.get("username")
+        password = attrs.get("password")
         user = authenticate(
             request=self.context.get('request'),
-            username=email,
+            username=username,
             password=password
         )
             
         if not user:
-            msg = _('Email and/or Password are incorrect.')
+            msg = _('Username and/or Password are incorrect.')
             raise serializers.ValidationError(msg, code='authorization')
         
         attrs['user'] = user

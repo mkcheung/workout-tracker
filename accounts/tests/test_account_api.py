@@ -10,16 +10,17 @@ User = get_user_model()
 REGISTER_URL = reverse('accounts:register')
 LOGIN_URL = reverse('accounts:login')
 LOGOUT_URL = reverse('accounts:logout')
-ME_URL = reverse('accounts:me')
+ME_URL = reverse('accounts_me:me')
 
 User = get_user_model()
 
 def create_user(**params):
     defaults = {
-        "name": "Test Name",
         "email": "test@example.com",
-        "username": "test@example.com",
+        "username": "testUserName",
         "password": "testpass123",
+        "first_name": "TestFirst",
+        "last_name": "TestLast",  
     }
     defaults.update(params)
 
@@ -35,25 +36,27 @@ class PublicAuthApiTests(APITestCase):
 
     def test_register_creates_user(self):
         payload = {
-            "name": "Test",
-            "email": "testing123@example.com",
-            "password": "testing123",
+            "username": "testUserName2",
+            "email": "test2@example.com",
+            "password": "testing@123",
+            "first_name": "TestFirst2",
+            "last_name": "TestLast2",
         }
         res = self.client.post(REGISTER_URL, payload)
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertIn('token', res.data)
         self.assertIn('user', res.data)
-
-        user = User.objects.get(email=payload['email'])
-        self.assertEqual(res.data['user']['name'], user.name)
+        user = User.objects.get(username=payload['username'])
+        self.assertEqual(res.data['user']['first_name'], user.first_name)
+        self.assertEqual(res.data['user']['last_name'], user.last_name)
         self.assertEqual(res.data['user']['email'], user.email)
-        self.assertEqual(user.name, payload['name'])
+        self.assertEqual(res.data['user']['username'], user.username)
         self.assertTrue(user.check_password(payload["password"]))
 
     def test_register_creates_user_missing_name(self):
         payload = {
             "name": "",
-            "email": "testing123@example.com",
+            "username": "testUserName",
             "password": "testing123",
             "password_confirm": "testing123",
         }
@@ -63,7 +66,7 @@ class PublicAuthApiTests(APITestCase):
     def test_register_creates_user_missing_email(self):
         payload = {
             "name": "Test",
-            "email": "",
+            "username": "",
             "password": "testing123",
         }
         res = self.client.post(REGISTER_URL, payload)
@@ -72,7 +75,7 @@ class PublicAuthApiTests(APITestCase):
     def test_register_creates_user_missing_password(self):
         payload = {
             "name": "Test",
-            "email": "testing123@example.com",
+            "username": "testUserName",
             "password": "",
         }
         res = self.client.post(REGISTER_URL, payload)
@@ -83,11 +86,12 @@ class PublicAuthApiTests(APITestCase):
             'email': 'test@example.com',
             'username': 'test@example.com',
             'password': 'testpass123',
-            'name': 'Test Name',
+            'first_name': 'Test FirstName',
+            'last_name': 'Test LastName',
         }
         res = self.client.post(REGISTER_URL, register_payload, format="json")
         payload = {
-            'email': register_payload['email'],
+            'username': register_payload['username'],
             'password': register_payload['password']
         }
         res = self.client.post(LOGIN_URL, payload)
@@ -99,7 +103,8 @@ class PublicAuthApiTests(APITestCase):
             'email': 'test@example.com',
             'username': 'test@example.com',
             'password': 'testpass123',
-            'name': 'Test Name',
+            'first_name': 'Test FirstName',
+            'last_name': 'Test LastName',
         }
         res = self.client.post(REGISTER_URL, register_payload, format="json")
         payload = {
@@ -114,7 +119,8 @@ class PublicAuthApiTests(APITestCase):
             'email': 'test@example.com',
             'username': 'test@example.com',
             'password': 'testpass123',
-            'name': 'Test Name',
+            'first_name': 'Test FirstName',
+            'last_name': 'Test LastName',
         }
         res = self.client.post(REGISTER_URL, register_payload, format="json")
         payload = {
@@ -133,7 +139,7 @@ class PrivateAuthApiTests(APITestCase):
     
     def test_logout(self):
         payload = {
-            'email': self.user.email,
+            'username': self.user.username,
             'password': self.password
         }
         login_res = self.client.post(LOGIN_URL, payload)
@@ -147,13 +153,13 @@ class PrivateAuthApiTests(APITestCase):
     def test_me(self):
         self.password = 'testpass123'
         payload = {
-            'email': self.user.email,
+            'username': self.user.username,
             'password': self.password
         }
         login_res = self.client.post(LOGIN_URL, payload)
         self.assertEqual(login_res.status_code, status.HTTP_200_OK)
         self.assertIn('token', login_res.data)
         self.client.credentials(HTTP_AUTHORIZATION=f"Token {login_res.data['token']}")
-        me_res = self.client.post(ME_URL)
+        me_res = self.client.get(ME_URL)
         self.assertEqual(me_res.status_code, status.HTTP_200_OK)
  

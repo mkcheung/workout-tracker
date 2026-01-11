@@ -11,19 +11,21 @@ from rest_framework.authtoken.models import Token
 from .serializers import MeSerializer
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.save()
 
-    token, _ = Token.objects.get_or_created(user=user)
+    token, _ = Token.objects.get_or_create(user=user)
     return Response({
         'token':token.key,
         "user": {
             "id": user.id,
-            "name": user.name, 
-            "email": user.email
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "username": user.username
         },
     }, status=status.HTTP_201_CREATED)
 
@@ -33,13 +35,13 @@ def login(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data['user']
-    token, _ = Token.objects.get_or_created(user=user)
+    token, _ = Token.objects.get_or_create(user=user)
     return Response({'token': token.key}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout(request):
-    request.auth.delete()
+    Token.objects.filter(user=request.user).delete()
     return Response({'message':'Logged Out'}, status=status.HTTP_200_OK)
 
 @api_view(['GET', 'PATCH'])
