@@ -1,10 +1,14 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth import (
+    get_user_model,
+    authenticate,
+)
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 from .models import Profile
 
 User = get_user_model()
 
-class RegisterSerializer(serializer.ModelSerializer):
+class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     class Meta:
         model = User
@@ -21,6 +25,30 @@ class RegisterSerializer(serializer.ModelSerializer):
             password = validated_data('password')
         )
         return user
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(
+        style={
+            'input_type': 'password'
+        },
+        trim_whitespace=False
+    )
+    def validate(self, attrs):
+        user = authenticate(
+            request=self.context.get('request'),
+            username=email,
+            password=password
+        )
+            
+        if not user:
+            msg = _('Email and/or Password are incorrect.')
+            raise serializers.ValidationError(msg, code='authorization')
+        
+        attrs['user'] = user
+        return attrs
+
+
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
