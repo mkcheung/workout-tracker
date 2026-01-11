@@ -5,8 +5,10 @@ from .models import Profile
 User = get_user_model()
 
 class RegisterSerializer(serializer.ModelSerializer):
-    model = User
-    fields = ['username', 'email', 'password']
+    password = serializers.CharField(write_only=True, min_length=8)
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password']
 
     def validate_password(self, value):
         validate_password(value)
@@ -14,12 +16,12 @@ class RegisterSerializer(serializer.ModelSerializer):
         
     def create(self, validated_data):
         user = User.objects.create_user(
-            user_name = validated_data('username'),
+            username = validated_data('username'),
             email = validated_data('email'),
             password = validated_data('password')
         )
         return user
-        
+
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
