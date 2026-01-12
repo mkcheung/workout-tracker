@@ -5,6 +5,9 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from rest_framework.test import APITestCase
+from accounts.models import (
+    Profile,
+)
 
 User = get_user_model()
 REGISTER_URL = reverse('accounts:register')
@@ -52,6 +55,7 @@ class PublicAuthApiTests(APITestCase):
         self.assertEqual(res.data['user']['email'], user.email)
         self.assertEqual(res.data['user']['username'], user.username)
         self.assertTrue(user.check_password(payload["password"]))
+        self.assertTrue(Profile.objects.filter(user=user).exists())
 
     def test_register_creates_user_missing_name(self):
         payload = {
