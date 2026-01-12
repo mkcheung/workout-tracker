@@ -1,15 +1,16 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions, filters
 from .serializers import ExerciseSerializer
+from .models import Exercise
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.method in permission.SAFE_METHODS:
+        if request.method in permissions.SAFE_METHODS:
             return True
         return bool(request.user and request.user.is_staff)
 
 class ExerciseViewSet(viewsets.ModelViewSet):
-    serializer = ExerciseSerializer
+    serializer_class = ExerciseSerializer
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
