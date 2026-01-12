@@ -106,4 +106,20 @@ class PrivateAuthApiTests(APITestCase):
         data = res.data.get('results', res.data.get('data', res.data))
         self.assertEqual(data['name'], payload['name'])
         self.assertEqual(data['muscle_group'], payload['muscle_group'])
+
+    def test_delete_exercise_as_admin(self):
+        self.client.force_authenticate(user=self.admin_user)
+        exercise = Exercise.objects.create(name='Bench Press', category='push',muscle_group='chest')
+
+        res = self.client.delete(exercise_detail_url(exercise.id))
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Exercise.objects.filter(id=exercise.id).exists())
+
+    def test_delete_exercise_as_user(self):
+        self.client.force_authenticate(user=self.user)
+        exercise = Exercise.objects.create(name='Bench Press', category='push',muscle_group='chest')
+
+        res = self.client.delete(exercise_detail_url(exercise.id))
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Exercise.objects.filter(id=exercise.id).exists())
     
