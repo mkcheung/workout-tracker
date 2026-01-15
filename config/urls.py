@@ -22,5 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('accounts.urls', namespace="accounts_me")),
     path("api/", include("exercises.urls")),
+    path("api/", include("workouts.urls")),
     path("api/auth/", include("accounts.auth_urls", namespace="accounts")),
 ]

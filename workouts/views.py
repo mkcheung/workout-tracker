@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, filters
 from rest_framework.authentication import TokenAuthentication
@@ -11,10 +11,15 @@ class WorkoutViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter]
     permission_classes = [IsAuthenticated]
     serializer_class = WorkoutSerializer
-    filter_backends = [DjangoFilterBackend, SearchFilter]
 
-    def perform_create(self):
-        serializer.save(self.request.user)
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return Workout.objects.all()
+        return Workout.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class WorkoutExerciseViewSet(viewsets.ModelViewSet):
@@ -22,13 +27,25 @@ class WorkoutExerciseViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = WorkoutExerciseSerializer
 
-    def perform_create(self):
-        serializer.save(self.request.user)
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return WorkoutExercise.objects.all()
+        return WorkoutExercise.objects.filter(workout__user = self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save()
 
 class WorkoutSetViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter]
     permission_classes = [IsAuthenticated]
     serializer_class = WorkoutSetSerializer
 
-    def perform_create(self):
-        serializer.save(self.request.user)
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return WorkoutSet.objects.all()
+        return WorkoutSet.objects.filter(workout_exercise__workout__user = self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save()
