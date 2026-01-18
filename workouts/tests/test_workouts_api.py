@@ -3,6 +3,7 @@ from exercises.models import (
     Exercise,
 )
 from datetime import datetime
+from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -22,8 +23,11 @@ WORKOUT_URL = reverse("workouts:workouts-list")
 def default_workout_url(workout_id):
     return reverse("workouts:workouts-detail", args=[workout_id])
 WORKOUT_EXERCISE_URL = reverse("workouts:workout-exercises-list")
-def default_workout_exercise_url(workout_id):
-    return reverse("workouts:workout-exercises-detail", args=[workout_id])
+def default_workout_exercise_url(workout_exercise_id):
+    return reverse("workouts:workout-exercises-detail", args=[workout_exercise_id])
+WORKOUT_SET_URL = reverse("workouts:workout-sets-list")
+def default_workout_set_url(workout_set_id):
+    return reverse("workouts:workout-sets-detail", args=[workout_set_id])
 
 def create_user(**params):
     defaults = {
@@ -256,11 +260,133 @@ class PrivateAuthApiTests(APITestCase):
 
         res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        data_workout = res.data.get('results', res.data.get('data', res.data))
-        self.assertEqual(workout.id, data_workout['workout'])
-        self.assertEqual(exercise.id, data_workout['exercise'])
-        self.assertEqual(workout_exercise_payload['order'], data_workout['order'])
+        data_workout_exercise = res.data.get('results', res.data.get('data', res.data))
+        self.assertEqual(workout.id, data_workout_exercise['workout'])
+        self.assertEqual(exercise.id, data_workout_exercise['exercise'])
+        self.assertEqual(workout_exercise_payload['order'], data_workout_exercise['order'])
 
-        res_workout_exercise = self.client.delete(default_workout_exercise_url(data_workout['id']))
+        res_workout_exercise = self.client.delete(default_workout_exercise_url(data_workout_exercise['id']))
         self.assertEqual(res_workout_exercise.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(WorkoutExercise.objects.filter(id=data_workout['id']).exists())
+        self.assertFalse(WorkoutExercise.objects.filter(id=data_workout_exercise['id']).exists())
+
+    def test_create_workout_set(self):
+        self.client.force_authenticate(self.user)
+        current_datetime = timezone.now()
+        workout_payload = {
+            'user': self.user,
+            'performed_at': current_datetime.isoformat()
+        }
+        workout = create_workout(**workout_payload)
+        exercise = create_exercise()
+        workout_exercise_payload = {
+            'workout':workout.id,
+            'exercise':exercise.id,
+            'order': 1,
+        }
+
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        data = res.data.get('results', res.data.get('data', res.data))
+        self.assertEqual(workout.id, data['workout'])
+        self.assertEqual(exercise.id, data['exercise'])
+        self.assertEqual(workout_exercise_payload['order'], data['order'])
+
+        workout_set_payload = {
+            'workout_exercise': data['id'],
+            'set_number':1,
+            'reps':8,
+            'weight':135
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        data = res.data.get('results', res.data.get('data', res.data))
+        self.assertEqual(workout_set_payload['workout_exercise'], data['workout_exercise'])
+        self.assertEqual(workout_set_payload['set_number'], data['set_number'])
+        self.assertEqual(workout_set_payload['reps'], data['reps'])
+        self.assertEqual(workout_set_payload['weight'], Decimal(data['weight']))
+
+    def test_update_workout_set(self):
+        self.client.force_authenticate(self.user)
+        current_datetime = timezone.now()
+        workout_payload = {
+            'user': self.user,
+            'performed_at': current_datetime.isoformat()
+        }
+        workout = create_workout(**workout_payload)
+        exercise = create_exercise()
+        workout_exercise_payload = {
+            'workout':workout.id,
+            'exercise':exercise.id,
+            'order': 1,
+        }
+
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        data = res.data.get('results', res.data.get('data', res.data))
+        self.assertEqual(workout.id, data['workout'])
+        self.assertEqual(exercise.id, data['exercise'])
+        self.assertEqual(workout_exercise_payload['order'], data['order'])
+
+        workout_set_payload = {
+            'workout_exercise': data['id'],
+            'set_number':1,
+            'reps':8,
+            'weight':135
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        data = res.data.get('results', res.data.get('data', res.data))
+        self.assertEqual(workout_set_payload['workout_exercise'], data['workout_exercise'])
+        self.assertEqual(workout_set_payload['set_number'], data['set_number'])
+        self.assertEqual(workout_set_payload['reps'], data['reps'])
+        self.assertEqual(workout_set_payload['weight'], Decimal(data['weight']))
+
+        workout_set_update_payload = {
+            'reps':12,
+        }
+        res_from_update = self.client.patch(default_workout_set_url(data['id']), workout_set_update_payload)
+        data = res_from_update.data.get('results', res_from_update.data.get('data', res_from_update.data))
+        self.assertEqual(workout_set_update_payload['reps'], data['reps'])
+
+    def test_delete_workout_set(self):
+        self.client.force_authenticate(self.user)
+        current_datetime = timezone.now()
+        workout_payload = {
+            'user': self.user,
+            'performed_at': current_datetime.isoformat()
+        }
+        workout = create_workout(**workout_payload)
+        exercise = create_exercise()
+        workout_exercise_payload = {
+            'workout':workout.id,
+            'exercise':exercise.id,
+            'order': 1,
+        }
+
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        data = res.data.get('results', res.data.get('data', res.data))
+        self.assertEqual(workout.id, data['workout'])
+        self.assertEqual(exercise.id, data['exercise'])
+        self.assertEqual(workout_exercise_payload['order'], data['order'])
+
+        workout_set_payload = {
+            'workout_exercise': data['id'],
+            'set_number':1,
+            'reps':8,
+            'weight':135
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        data = res.data.get('results', res.data.get('data', res.data))
+        self.assertEqual(workout_set_payload['workout_exercise'], data['workout_exercise'])
+        self.assertEqual(workout_set_payload['set_number'], data['set_number'])
+        self.assertEqual(workout_set_payload['reps'], data['reps'])
+        self.assertEqual(workout_set_payload['weight'], Decimal(data['weight']))
+
+        res_from_update = self.client.delete(default_workout_set_url(data['id']))
+        self.assertEqual(res_from_update.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(WorkoutSet.objects.filter(id=data['id']).exists())
