@@ -4,8 +4,8 @@ from .views import WorkoutViewSet, WorkoutExerciseViewSet, WorkoutSetViewSet
 app_name = "workouts"
 
 router = DefaultRouter()
-router.register('workouts', WorkoutViewSet)
-router.register('workout-exercises', WorkoutExerciseViewSet)
-router.register('workout-sets', WorkoutSetViewSet) 
+router.register('workouts', WorkoutViewSet, basename='workouts')
+router.register('workout-exercises', WorkoutExerciseViewSet, basename='workout-exercises')
+router.register('workout-sets', WorkoutSetViewSet, basename='workout-sets') 
 
 urlpatterns = router.urls
