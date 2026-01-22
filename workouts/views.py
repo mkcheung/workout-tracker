@@ -2,13 +2,20 @@ from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, filters
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.filters import SearchFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import WorkoutSerializer, WorkoutExerciseSerializer, WorkoutSetSerializer
 from .models import Workout, WorkoutExercise, WorkoutSet
 
 class WorkoutViewSet(viewsets.ModelViewSet):
-    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = {
+        'performed_at': ['date', 'gte', 'lte'],
+        'created_at': ['gte', 'lte']
+    }
+    search_fields = ['notes']
+    ordering_fields = ['performed_at', 'created_at', 'updated_at']
+    ordering = ['-performed_at']
     permission_classes = [IsAuthenticated]
     serializer_class = WorkoutSerializer
     queryset = Workout.objects.all()
@@ -24,7 +31,9 @@ class WorkoutViewSet(viewsets.ModelViewSet):
 
 
 class WorkoutExerciseViewSet(viewsets.ModelViewSet):
-    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['workout', 'exercise']
+    ordering_fields = ['created_at', 'order']
     permission_classes = [IsAuthenticated]
     serializer_class = WorkoutExerciseSerializer
     queryset = WorkoutExercise.objects.all()
@@ -39,7 +48,10 @@ class WorkoutExerciseViewSet(viewsets.ModelViewSet):
         serializer.save()
 
 class WorkoutSetViewSet(viewsets.ModelViewSet):
-    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['workout_exercise']
+    ordering_fields = ['set_number', 'created_at', 'updated_at']
+    ordering = ['set_number']
     permission_classes = [IsAuthenticated]
     serializer_class = WorkoutSetSerializer
     queryset = WorkoutSet.objects.all()
