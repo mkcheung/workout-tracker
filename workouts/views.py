@@ -4,7 +4,7 @@ from rest_framework import viewsets, permissions, filters
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .serializers import WorkoutSerializer, WorkoutExerciseSerializer, WorkoutSetSerializer
+from .serializers import WorkoutSerializer, WorkoutExerciseSerializer, WorkoutSetSerializer, WorkoutDetailSerializer
 from .models import Workout, WorkoutExercise, WorkoutSet
 
 class WorkoutViewSet(viewsets.ModelViewSet):
@@ -19,6 +19,11 @@ class WorkoutViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = WorkoutSerializer
     queryset = Workout.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ['retrieve', 'list']:
+            return WorkoutDetailSerializer
+        return WorkoutSerializer
 
     def get_queryset(self):
         user = self.request.user

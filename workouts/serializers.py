@@ -76,3 +76,22 @@ class WorkoutSetSerializer(serializers.ModelSerializer):
         if value is not None and value <= 0:
             raise serializers.ValidationError('Weight value must be greater or equal to 1 when provided.')
         return value
+
+class WorkoutSetNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkoutSet
+        fields = ['id', 'set_number', 'reps', 'weight']
+
+class WorkoutExerciseNestedSerializer(serializers.ModelSerializer):
+    workout_sets = WorkoutSetNestedSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = WorkoutExercise
+        fields = ['id', 'exercise', 'order', 'workout_sets']
+
+class WorkoutDetailSerializer(serializers.ModelSerializer):
+    workout_exercises = WorkoutExerciseNestedSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Workout
+        fields = ['id', 'workout_exercises', 'notes', 'performed_at', 'created_at', 'updated_at']
