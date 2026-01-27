@@ -84,7 +84,7 @@ class PrivateAuthApiTests(APITestCase):
         self.assertEqual(workout_set_payload['weight'], Decimal(data['weight']))
 
         insights_payload = {
-            'exercise_id': 9,
+            'exercise_id': exercise.id,
             'metric': 'top_set_weight',
             'performed_from':one_day_before.strftime('%Y-%m-%d'),
             'performed_to':one_day_after.strftime('%Y-%m-%d')
