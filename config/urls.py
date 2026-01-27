@@ -24,4 +24,5 @@ urlpatterns = [
     path("api/", include("exercises.urls")),
     path("api/", include("workouts.urls")),
     path("api/auth/", include("accounts.auth_urls", namespace="accounts")),
+    path("api/insights", include("insights.urls")),
 ]

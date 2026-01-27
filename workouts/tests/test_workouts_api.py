@@ -18,6 +18,13 @@ from workouts.models import (
     WorkoutSet
 )
 
+from tests.factories import (
+    create_admin_user,
+    create_user,
+    create_workout,
+    create_exercise
+)
+
 User = get_user_model()
 WORKOUT_URL = reverse("workouts:workouts-list")
 def default_workout_url(workout_id):
@@ -29,50 +36,7 @@ WORKOUT_SET_URL = reverse("workouts:workout-sets-list")
 def default_workout_set_url(workout_set_id):
     return reverse("workouts:workout-sets-detail", args=[workout_set_id])
 
-def create_user(**params):
-    defaults = {
-        'username': 'test@example.com',
-        'email': 'test@example.com',
-        'password': 'test@123',
-        'first_name': 'test',
-        'last_name': 'last'
-    }
-    defaults.update(**params)
-    password = defaults.pop('password')
-    user = User.objects.create_user(defaults);
-    user.set_password(password)
-    user.save()
-    return user
 
-def create_admin_user(**params):
-    defaults = {
-        'username': 'testadmin@example.com',
-        'email': 'testadmin@example.com',
-        'password': 'test@123'
-    }
-    defaults.update(**params)
-    password = defaults.pop('password')
-    admin_user = User.objects.create_superuser(defaults)
-    admin_user.set_password(password)
-    return admin_user
-
-def create_workout(**params):
-    defaults = {
-        'notes': 'workout default'
-    }
-    defaults.update(**params)
-    workout = Workout.objects.create(**defaults)
-    return workout
-
-def create_exercise(**params):
-    defaults = {
-        'name': 'an exercise',
-        'category': 'push',
-        'muscle_group': 'chest'
-    }
-    defaults.update(**params)
-    exercise = Exercise.objects.create(**defaults)
-    return exercise
 
 class PublicAuthApiTests(APITestCase):
     def setUp(self):
@@ -569,7 +533,7 @@ class PrivateAuthApiTests(APITestCase):
 
         data = res.data.get('results', res.data.get('data', res.data))
         self.assertEqual(workout.id, data['id'])
-        self.assertEqual('workout default', data['notes'])
+        self.assertEqual('Notes for the workout', data['notes'])
         self.assertEqual(data['performed_at'], workout_payload["performed_at"].replace("+00:00", "Z"))
 
         created_workout_exercise = data['workout_exercises']
