@@ -44,7 +44,7 @@ class PrivateAuthApiTests(APITestCase):
         self.user = create_user()
         self.client = APIClient()
 
-    def test_create_workout_set(self):
+    def test_insights_exercise_series(self):
         self.client.force_authenticate(self.user)
         current_datetime = timezone.now()
         one_day_before = current_datetime - timedelta(days=1)
@@ -92,3 +92,4 @@ class PrivateAuthApiTests(APITestCase):
         res = self.client.get(INSIGHTS_EXERCISE_SERIES_URL, insights_payload)
         data = res.data.get('results', res.data.get('data', res.data))
         print(data)
+
