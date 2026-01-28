@@ -132,6 +132,7 @@ class PrivateAuthApiTests(APITestCase):
         data = res.data.get('results', res.data.get('data', res.data))
         workout_weeks = week_buckets(previous_time_marker,post_time_marker)
         points = data['points']
+        summary = data['summary']
         self.assertEqual(data['exercise_id'], exercise.id)
         self.assertEqual(data['unit'], 'lbs_reps')
         self.assertEqual(data['weeks'], 4)
@@ -141,3 +142,6 @@ class PrivateAuthApiTests(APITestCase):
         self.assertEqual(Decimal(workout1_best_weight), points[2]['value'])
         self.assertEqual(workout_weeks[3]['date'], points[3]['date'])
         self.assertEqual(Decimal(workout2_best_weight), points[3]['value'])
+        self.assertEqual(0, summary['start'])
+        self.assertEqual(Decimal(workout2_best_weight), summary['latest'])
+        self.assertEqual(Decimal(workout2_best_weight), summary['change'])
