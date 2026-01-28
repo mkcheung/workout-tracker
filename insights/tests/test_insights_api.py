@@ -48,7 +48,7 @@ class PrivateAuthApiTests(APITestCase):
         self.user = create_user()
         self.client = APIClient()
 
-    def test_scaffolding(self):
+    def test_exercise_series_insights(self):
         self.client.force_authenticate(self.user)
         current_datetime = timezone.now()
         previous_time_marker = current_datetime - timedelta(days=10)

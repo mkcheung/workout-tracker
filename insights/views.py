@@ -35,18 +35,6 @@ class InsightsExerciseSeriesViewSet(viewsets.ViewSet):
         
         return Response(top_set_weight_response)
 
-        # if performed_from:
-        #     user_workouts = user_workouts.filter(performed_at__date__gte=performed_from)
-
-        # if performed_to:
-        #     user_workouts = user_workouts.filter(performed_at__date__lte=performed_to)
-
-        # return Response({
-        #     'performed_from': str(performed_from) if performed_from else None,
-        #     'performed_to': str(performed_to) if performed_to else None,
-        #     'user_workouts': len(user_workouts)
-        # })
-
 
 class InsightsWeeklyVolumeViewSet(viewsets.ViewSet):
     pass
