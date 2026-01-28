@@ -16,8 +16,9 @@ def week_buckets( start: date, end: date):
         current_week += timedelta(days=7)
     return weeks
 
-def calculate_weekly_volume(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
+def calculate_weekly_top_set(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
     wk_buckets = week_buckets(performed_from, performed_to)
+    week_bucket = { week['date']:week for week in wk_buckets }
     for user_workout in user_workouts:
         weight_from_best_set = 0
         for we in user_workout.workout_exercises.all():
@@ -25,8 +26,7 @@ def calculate_weekly_volume(user_workouts, performed_from:datetime, performed_to
                 weight_from_best_set = ws.weight if ws.weight > weight_from_best_set else weight_from_best_set
 
         week_of_workout = (user_workout.performed_at - timedelta(days=user_workout.performed_at.weekday())).strftime('%Y-%m-%d')
-        week_bucket = [ week for week in wk_buckets if week['date'] == week_of_workout ]
-        week_bucket[0]['value'] = weight_from_best_set
+        week_bucket[week_of_workout]['value'] = max(week_bucket[week_of_workout]['value'], weight_from_best_set)
 
     return {
         "exercise_id": exercise_id,
