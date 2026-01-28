@@ -67,7 +67,7 @@ class PrivateAuthApiTests(APITestCase):
 
         res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
         data = res.data.get('results', res.data.get('data', res.data))
-        workout1_best_weight = 175
+        workout1_exercise1_best_weight = 175
 
         workout_set_payload = {
             'workout_exercise': data['id'],
@@ -82,7 +82,40 @@ class PrivateAuthApiTests(APITestCase):
             'workout_exercise': data['id'],
             'set_number':2,
             'reps':1,
-            'weight':workout1_best_weight
+            'weight':workout1_exercise1_best_weight
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+
+        exercise2 = create_exercise(**{
+            'name': 'another exercise',
+            'category': 'pull',
+            'muscle_group': 'legs'
+        })
+        workout1_exercise2_best_weight = 225
+
+        workout_exercise_payload = {
+            'workout':workout.id,
+            'exercise':exercise2.id,
+            'order': 2,
+        }
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
+        data = res.data.get('results', res.data.get('data', res.data))
+
+        workout_set_payload = {
+            'workout_exercise': data['id'],
+            'set_number':1,
+            'reps':8,
+            'weight':200
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+
+        workout_set_payload = {
+            'workout_exercise': data['id'],
+            'set_number':2,
+            'reps':8,
+            'weight':225
         }
 
         res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
@@ -100,7 +133,7 @@ class PrivateAuthApiTests(APITestCase):
 
         res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
         data = res.data.get('results', res.data.get('data', res.data))
-        workout2_best_weight = 190
+        workout2_exercise1_best_weight = 190
 
         workout_set_payload = {
             'workout_exercise': data['id'],
@@ -115,7 +148,34 @@ class PrivateAuthApiTests(APITestCase):
             'workout_exercise': data['id'],
             'set_number':2,
             'reps':1,
-            'weight':workout2_best_weight
+            'weight':workout2_exercise1_best_weight
+        }
+        
+        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+
+        workout_exercise_payload = {
+            'workout':workout_2.id,
+            'exercise':exercise2.id,
+            'order': 2,
+        }
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
+        data = res.data.get('results', res.data.get('data', res.data))
+        workout2_exercise2_best_weight = 250
+
+        workout_set_payload = {
+            'workout_exercise': data['id'],
+            'set_number':1,
+            'reps':8,
+            'weight':245
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+
+        workout_set_payload = {
+            'workout_exercise': data['id'],
+            'set_number':2,
+            'reps':8,
+            'weight':250
         }
 
         res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
@@ -128,6 +188,8 @@ class PrivateAuthApiTests(APITestCase):
             'performed_from':previous_time_marker.strftime('%Y-%m-%d'),
             'performed_to':post_time_marker.strftime('%Y-%m-%d')
         }
+
+        # test for exercise 1
         res = self.client.get(INSIGHTS_EXERCISE_SERIES_URL, insights_payload)
         data = res.data.get('results', res.data.get('data', res.data))
         workout_weeks = week_buckets(previous_time_marker,post_time_marker)
@@ -139,9 +201,34 @@ class PrivateAuthApiTests(APITestCase):
         self.assertEqual(workout_weeks[0], points[0])
         self.assertEqual(workout_weeks[1], points[1])
         self.assertEqual(workout_weeks[2]['date'], points[2]['date'])
-        self.assertEqual(Decimal(workout1_best_weight), points[2]['value'])
+        self.assertEqual(Decimal(workout1_exercise1_best_weight), points[2]['value'])
         self.assertEqual(workout_weeks[3]['date'], points[3]['date'])
-        self.assertEqual(Decimal(workout2_best_weight), points[3]['value'])
+        self.assertEqual(Decimal(workout2_exercise1_best_weight), points[3]['value'])
         self.assertEqual(0, summary['start'])
-        self.assertEqual(Decimal(workout2_best_weight), summary['latest'])
-        self.assertEqual(Decimal(workout2_best_weight), summary['change'])
+        self.assertEqual(Decimal(workout2_exercise1_best_weight), summary['latest'])
+        self.assertEqual(Decimal(workout2_exercise1_best_weight), summary['change'])
+
+        # test for exercise 2
+        insights_payload = {
+            'exercise_id': exercise2.id,
+            'metric': 'top_set_weight',
+            'performed_from':previous_time_marker.strftime('%Y-%m-%d'),
+            'performed_to':post_time_marker.strftime('%Y-%m-%d')
+        }
+        res = self.client.get(INSIGHTS_EXERCISE_SERIES_URL, insights_payload)
+        data = res.data.get('results', res.data.get('data', res.data))
+        workout_weeks = week_buckets(previous_time_marker,post_time_marker)
+        points = data['points']
+        summary = data['summary']
+        self.assertEqual(data['exercise_id'], exercise2.id)
+        self.assertEqual(data['unit'], 'lbs_reps')
+        self.assertEqual(data['weeks'], 4)
+        self.assertEqual(workout_weeks[0], points[0])
+        self.assertEqual(workout_weeks[1], points[1])
+        self.assertEqual(workout_weeks[2]['date'], points[2]['date'])
+        self.assertEqual(Decimal(workout1_exercise2_best_weight), points[2]['value'])
+        self.assertEqual(workout_weeks[3]['date'], points[3]['date'])
+        self.assertEqual(Decimal(workout2_exercise2_best_weight), points[3]['value'])
+        self.assertEqual(0, summary['start'])
+        self.assertEqual(Decimal(workout2_exercise2_best_weight), summary['latest'])
+        self.assertEqual(Decimal(workout2_exercise2_best_weight), summary['change'])

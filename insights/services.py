@@ -27,7 +27,6 @@ def calculate_weekly_top_set(user_workouts, performed_from:datetime, performed_t
 
         week_of_workout = (user_workout.performed_at - timedelta(days=user_workout.performed_at.weekday())).strftime('%Y-%m-%d')
         week_bucket[week_of_workout]['value'] = max(week_bucket[week_of_workout]['value'], weight_from_best_set)
-
     starting_weight = list(week_bucket.values())[0]['value']
     latest_weight = list(week_bucket.values())[-1]['value']
     change_in_weight = abs(latest_weight - starting_weight)
