@@ -1,4 +1,5 @@
 from datetime import datetime, date, time, timedelta
+from decimal import Decimal
 
 def get_monday(incoming_date: date) -> list[date]:
     return incoming_date - timedelta(days=incoming_date.weekday())
@@ -43,11 +44,42 @@ def calculate_weekly_top_set(user_workouts, performed_from:datetime, performed_t
             'change': change_in_weight
         }
     return {
-        "exercise_id": exercise_id,
+        'exercise_id': exercise_id,
+        'metric': 'top_set_weight',
         'unit': 'lbs_reps',
-        'weeks': len(wk_buckets),
         'points': wk_buckets,
         'summary': summary
     }
 
+def calculate_daily_1_rep_max(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
+    points = []
+    for user_workout in user_workouts:
+        daily_1_rep_max = 0
+        weight_from_best_set = 0
+        reps_from_best_set = 0
+        weight_reps_from_best_set = ()
+        for we in user_workout.workout_exercises.all():
+            for ws in we.workout_sets.all():
+                weight_reps_from_best_set = (ws.weight, ws.reps) if ws.weight > weight_from_best_set else (weight_from_best_set,reps_from_best_set)
+        daily_1_rep_max = round(weight_reps_from_best_set[0] * (1 + (weight_reps_from_best_set[1] / Decimal(30))),2)
+        points.append({
+            'date':user_workout.performed_at.strftime('%Y-%m-%d'),
+            'value':daily_1_rep_max
+        })
+    starting_1_rep_max = points[0]['value']
+    latest_1_rep_max = points[-1]['value']
+    change_in_1_rep_max = abs(latest_1_rep_max - starting_1_rep_max)
+    summary = {
+        'start':starting_1_rep_max,
+        'latest':latest_1_rep_max,
+        'change': change_in_1_rep_max
+    }
+    
+    return {
+        'exercise_id': exercise_id,
+        'metric': 'estimated_1rm',
+        'unit': 'lbs_reps',
+        'points': points,
+        'summary': summary
+    }
     

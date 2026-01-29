@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from workouts.models import Workout, WorkoutExercise, WorkoutSet
 from .serializers import InsightsDateRangeQuerySerializer
-from .services import calculate_weekly_top_set
+from .services import calculate_weekly_top_set, calculate_daily_1_rep_max
 
 class InsightsExerciseSeriesViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -42,6 +42,9 @@ class InsightsExerciseSeriesViewSet(viewsets.ViewSet):
         if metric == 'top_set_weight':
             top_set_weight_response = calculate_weekly_top_set(user_workouts, performed_from, performed_to, params.get('exercise_id'))
             return Response(top_set_weight_response)
+        elif metric == 'estimated_1rm':
+            estimated_1_rep_max_response = calculate_daily_1_rep_max(user_workouts, performed_from, performed_to, params.get('exercise_id'))
+            return Response(estimated_1_rep_max_response)
             
         return Response({'message': 'Unsupported Metric'}, 400)
 
