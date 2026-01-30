@@ -82,4 +82,33 @@ def calculate_daily_1_rep_max(user_workouts, performed_from:datetime, performed_
         'points': points,
         'summary': summary
     }
+
+def calculate_daily_tonnage(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
+    points = []
+    for user_workout in user_workouts:
+        overall_volume = 0
+        for we in user_workout.workout_exercises.all():
+            for ws in we.workout_sets.all():
+                overall_volume += ws.weight * ws.reps
+        overall_volume = round(overall_volume,2)
+        points.append({
+            'date':user_workout.performed_at.strftime('%Y-%m-%d'),
+            'value':overall_volume
+        })
+    starting_volume = points[0]['value']
+    latest_volume = points[-1]['value']
+    change_in_volume = abs(latest_volume - starting_volume)
+    summary = {
+        'start':starting_volume,
+        'latest':latest_volume,
+        'change': change_in_volume
+    }
+    
+    return {
+        'exercise_id': exercise_id,
+        'metric': 'tonnage',
+        'unit': 'lbs_reps',
+        'points': points,
+        'summary': summary
+    }
     

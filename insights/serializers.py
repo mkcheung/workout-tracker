@@ -4,7 +4,7 @@ class InsightsDateRangeQuerySerializer(serializers.Serializer):
     performed_from = serializers.DateField(required=False, input_formats=["%Y-%m-%d"])
     performed_to = serializers.DateField(required=False, input_formats=["%Y-%m-%d"])
     exercise_id = serializers.IntegerField(required=True)
-    metric = serializers.ChoiceField(choices=['top_set_weight', 'estimated_1rm', 'max_reps'])
+    metric = serializers.ChoiceField(choices=['top_set_weight', 'estimated_1rm', 'tonnage'])
 
     def validate(self, attrs):
         perform_from = attrs.get('performed_from')
