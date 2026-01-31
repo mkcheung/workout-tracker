@@ -1,3 +1,5 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 from rest_framework import serializers
 
 class InsightsDateRangeQuerySerializer(serializers.Serializer):
@@ -14,4 +16,15 @@ class InsightsDateRangeQuerySerializer(serializers.Serializer):
         
         return attrs
 
-    
+class InsightsWeeklyVolumeSerializer(serializers.Serializer):
+    exercise_id = serializers.IntegerField(required=True)
+    weeks = serializers.IntegerField(
+        required=False, 
+        default=12,
+        validators=[MinValueValidator(1), MaxValueValidator(52)]
+    )
+    to = serializers.DateField(
+        required=False,
+        default=timezone.now(),
+        input_formats=["%Y-%m-%d"],
+    )

@@ -4,17 +4,40 @@ from decimal import Decimal
 def get_monday(incoming_date: date) -> list[date]:
     return incoming_date - timedelta(days=incoming_date.weekday())
 
-def week_buckets( start: date, end: date):
-    starting_week = get_monday(start)
-    end_week = get_monday(end)
+def week_buckets( start: date, end: date, duration: int = None):
     weeks = []
-    current_week = starting_week
-    while current_week <= end_week:
-        weeks.append({
-            'date': current_week.strftime('%Y-%m-%d'),
-            'value': 0
-        })
-        current_week += timedelta(days=7)
+
+    if (duration == None) or (start and end and duration):
+        starting_week = get_monday(start)
+        end_week = get_monday(end)
+        current_week = starting_week
+        while current_week <= end_week:
+            weeks.append({
+                'date': current_week.strftime('%Y-%m-%d'),
+                'value': 0
+            })
+            current_week += timedelta(days=7)
+    elif (start and duration):
+        mon_of_duration_week = start - timedelta(start.weekday())
+        counter = 0
+        while (counter < duration):
+            weeks.append({
+                'week_start': mon_of_duration_week.strftime('%Y-%m-%d'),
+                'value': 0
+            })
+            mon_of_duration_week += timedelta(days=7)
+            counter += 1
+    elif (end and duration):
+        mon_of_duration_week = end - timedelta(end.weekday())
+        counter = 0
+        while (counter < duration):
+            weeks.append({
+                'week_start': mon_of_duration_week.strftime('%Y-%m-%d'),
+                'value': 0
+            })
+            mon_of_duration_week -= timedelta(days=7)
+            counter += 1
+
     return weeks
 
 def calculate_weekly_top_set(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
@@ -111,4 +134,23 @@ def calculate_daily_tonnage(user_workouts, performed_from:datetime, performed_to
         'points': points,
         'summary': summary
     }
+
+def calculate_weekly_volume(user_workouts, duration:int, to:datetime, exercise_id:int):
+    wk_buckets = week_buckets(None, to, duration)
+    points = { week['week_start']:week for week in wk_buckets}
+    print(points)
+    for user_workout in user_workouts:
+        weekly_tonnage = 0
+        for we in user_workout.workout_exercises.all():
+            for ws in we.workout_sets.all():
+                weekly_tonnage += ws.weight * ws.reps
+        week_of_workout = (user_workout.performed_at - timedelta(days=user_workout.performed_at.weekday())).strftime('%Y-%m-%d')
+        points[week_of_workout]['value'] += weekly_tonnage
     
+    
+    return {
+        'exercise_id': exercise_id,
+        'unit': 'lbs_reps',
+        'weeks': duration,
+        'points': points,
+    }

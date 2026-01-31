@@ -7,8 +7,8 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from workouts.models import Workout, WorkoutExercise, WorkoutSet
-from .serializers import InsightsDateRangeQuerySerializer
-from .services import calculate_weekly_top_set, calculate_daily_1_rep_max, calculate_daily_tonnage
+from .serializers import InsightsDateRangeQuerySerializer, InsightsWeeklyVolumeSerializer
+from .services import calculate_weekly_top_set, calculate_daily_1_rep_max, calculate_daily_tonnage, calculate_weekly_volume
 
 class InsightsExerciseSeriesViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -53,7 +53,29 @@ class InsightsExerciseSeriesViewSet(viewsets.ViewSet):
 
 
 class InsightsWeeklyVolumeViewSet(viewsets.ViewSet):
-    pass
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        user = request.user
+        weekly_volume_params = InsightsWeeklyVolumeSerializer(data=request.query_params)
+        weekly_volume_params.is_valid(raise_exception=True)
+        params = weekly_volume_params.validated_data
+
+        exercise_id = params.get('exercise_id')
+        weeks = params.get('weeks')
+        to = params.get('to')
+
+        user_workouts = Workout.objects.filter(user=user, workout_exercises__exercise_id = exercise_id).prefetch_related(
+            Prefetch(
+                'workout_exercises',
+                queryset = WorkoutExercise.objects.filter(exercise_id=params['exercise_id'])
+                .prefetch_related('workout_sets')
+            )
+        )
+        print('calculate_weekly_volume')
+        temp = calculate_weekly_volume(user_workouts, weeks, to, exercise_id)
+        return Response(temp)
+        
 
 class InsightsExportSetsViewSet(viewsets.ViewSet):
     pass
