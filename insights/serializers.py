@@ -28,3 +28,27 @@ class InsightsWeeklyVolumeSerializer(serializers.Serializer):
         default=timezone.now(),
         input_formats=["%Y-%m-%d"],
     )
+
+class InsightsExportSetsSerializer(serializers.Serializer):
+    performed_from = serializers.DateField(required=False, input_formats=["%Y-%m-%d"])
+    performed_to = serializers.DateField(required=False, input_formats=["%Y-%m-%d"])
+    exercise_id = serializers.IntegerField(required=False)
+    page = serializers.IntegerField(
+        required=False
+        default=1
+    )
+    page_size = serializers.IntegerField(
+        required=False,
+        default=200,
+        validators=[MinValueValidator(1), MaxValueValidator(500)]
+    )
+    weeks = serializers.IntegerField(
+        required=False, 
+        default=12,
+        validators=[MinValueValidator(1), MaxValueValidator(52)]
+    )
+    to = serializers.DateField(
+        required=False,
+        default=timezone.now(),
+        input_formats=["%Y-%m-%d"],
+    )
