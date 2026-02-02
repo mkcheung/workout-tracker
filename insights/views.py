@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from workouts.models import Workout, WorkoutExercise, WorkoutSet
 from .serializers import InsightsDateRangeQuerySerializer, InsightsWeeklyVolumeSerializer, InsightsExportSetsSerializer
-from .services import calculate_weekly_top_set, calculate_daily_1_rep_max, calculate_daily_tonnage, calculate_weekly_volume
+from .services import calculate_weekly_top_set, calculate_daily_1_rep_max, calculate_daily_tonnage, calculate_weekly_volume, calculate_export_sets
 
 class InsightsExerciseSeriesViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -91,6 +91,7 @@ class InsightsExportSetsViewSet(viewsets.ViewSet):
         page = params.get('page')
         page_size = params.get('page_size')
         
+        print('InsightsExportSetsViewSet')
         if exercise_id:
             user_workouts = Workout.objects.filter(user=user, workout_exercises__exercise_id = exercise_id).prefetch_related(
                 Prefetch(
@@ -111,3 +112,6 @@ class InsightsExportSetsViewSet(viewsets.ViewSet):
             user_workouts = user_workouts.filter(performed_at__date__gte=performed_from)
         if performed_to:
             user_workouts = user_workouts.filter(performed_at__date__lte=performed_to)
+        
+        export_sets = calculate_export_sets(user_workouts, performed_from, performed_to, exercise_id)
+        return Response(export_sets)

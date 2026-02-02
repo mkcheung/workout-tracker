@@ -147,10 +147,35 @@ def calculate_weekly_volume(user_workouts, duration:int, to:datetime, exercise_i
         week_of_workout = (user_workout.performed_at - timedelta(days=user_workout.performed_at.weekday())).strftime('%Y-%m-%d')
         points[week_of_workout]['value'] += weekly_tonnage
     
-    
     return {
         'exercise_id': exercise_id,
         'unit': 'lbs_reps',
         'weeks': duration,
         'points': points,
+    }
+
+def calculate_export_sets(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
+    results = []
+    print(results)
+    for user_workout in user_workouts:
+        for we in user_workout.workout_exercises.all():
+            for ws in we.workout_sets.all():
+                results.append({
+                    'workout_id': we.workout.id,
+                    'performed_at': user_workout.performed_at.strftime('%Y-%m-%d'),
+                    'exercise_id': we.exercise.id,
+                    'exercise_name': we.exercise.name,
+                    'workout_exercise_id': we.id,
+                    'order': we.order,
+                    'set_id': ws.id,
+                    'set_number': ws.set_number,
+                    'reps': ws.reps,
+                    'weight': ws.weight,
+                })
+    print(results)
+    print(len(results))
+    
+    return {
+        'count': len(results),
+        'results': results,
     }

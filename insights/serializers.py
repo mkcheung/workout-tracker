@@ -34,7 +34,7 @@ class InsightsExportSetsSerializer(serializers.Serializer):
     performed_to = serializers.DateField(required=False, input_formats=["%Y-%m-%d"])
     exercise_id = serializers.IntegerField(required=False)
     page = serializers.IntegerField(
-        required=False
+        required=False,
         default=1
     )
     page_size = serializers.IntegerField(

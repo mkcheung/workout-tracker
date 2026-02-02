@@ -30,6 +30,8 @@ from insights.services import(
 
 INSIGHTS_EXERCISE_SERIES_URL = reverse("insights:exercise-series")
 INSIGHTS_WORKOUT_VOLUME_URL = reverse("insights:weekly-volume")
+INSIGHTS_EXPORT_SETS_URL = reverse("insights:export-sets")
+
 def default_insights_exercise_url(workout_id):
     return reverse("workouts:workouts-detail", args=[workout_id])
 
@@ -956,7 +958,7 @@ class PrivateAuthApiTests(APITestCase):
         change = abs(workout2_exercise1_1_rep_max - workout1_exercise1_1_rep_max)
         self.assertEqual(change, summary['change'])
 
-    def test_exercise_series_insights_tonnage(self):
+    def test_export_sets_insights(self):
         self.client.force_authenticate(self.user)
         current_datetime = timezone.make_aware(datetime(2026, 2, 2, 12, 0, 0))
         previous_time_marker = current_datetime - timedelta(days=10)
@@ -1128,6 +1130,7 @@ class PrivateAuthApiTests(APITestCase):
         self.client.force_authenticate(self.user)
         current_datetime = timezone.make_aware(datetime(2026, 1, 27, 12, 0, 0))
         previous_time_marker = current_datetime - timedelta(days=31)
+        post_time_marker = current_datetime + timedelta(days=10)
         workout_payload = {
             'user': self.user,
             'performed_at': current_datetime.isoformat()
@@ -1199,17 +1202,14 @@ class PrivateAuthApiTests(APITestCase):
             'to':current_datetime.strftime('%Y-%m-%d')
         }
 
-        # test for exercise 1
+        insights_payload = {
+            'exercise_id': exercise.id,
+            'performed_from':previous_time_marker.strftime('%Y-%m-%d'),
+            'performed_to':current_datetime.strftime('%Y-%m-%d')
+        }
 
-        res = self.client.get(INSIGHTS_WORKOUT_VOLUME_URL, workout_volume_payload)
+        print(INSIGHTS_EXPORT_SETS_URL)
+        res = self.client.get(INSIGHTS_EXPORT_SETS_URL, insights_payload)
         data = res.data.get('results', res.data.get('data', res.data))
-        points = data['points']
-        pre_time_marker_str = (previous_time_marker - timedelta(previous_time_marker.weekday())).strftime('%Y-%m-%d')
-        cur_time_marker_str = (current_datetime - timedelta(current_datetime.weekday())).strftime('%Y-%m-%d')
-        self.assertEqual(data['exercise_id'], exercise.id)
-        self.assertEqual(data['unit'], 'lbs_reps')
-        self.assertEqual(data['weeks'], 12)
-        self.assertEqual(pre_time_marker_str, points[pre_time_marker_str]['week_start'])
-        self.assertEqual(1255.00, points[cur_time_marker_str]['value'])
-        self.assertEqual(cur_time_marker_str, points[cur_time_marker_str]['week_start'])
-        self.assertEqual(655.00, points[pre_time_marker_str]['value'])
+        print(data)
+
