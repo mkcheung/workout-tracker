@@ -1,5 +1,6 @@
 from datetime import datetime, date, time, timedelta
 from decimal import Decimal
+from django.urls import reverse
 
 def get_monday(incoming_date: date) -> list[date]:
     return incoming_date - timedelta(days=incoming_date.weekday())
@@ -154,9 +155,16 @@ def calculate_weekly_volume(user_workouts, duration:int, to:datetime, exercise_i
         'points': points,
     }
 
-def calculate_export_sets(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
+def calculate_export_sets(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int, page:int = 1, page_size:int = 200):
     results = []
-    print(results)
+    if (page and page > 1):
+        next_url = reverse("insights:export-sets") + f"?page={page}&page_size={page_size}"
+        previous_url = reverse("insights:export-sets") + f"?page={page-1}&page_size={page_size}"
+    else:
+        next_url = reverse("insights:export-sets") + f"?page=1&page_size={page_size}"
+        previous_url = None
+
+    
     for user_workout in user_workouts:
         for we in user_workout.workout_exercises.all():
             for ws in we.workout_sets.all():
@@ -172,10 +180,9 @@ def calculate_export_sets(user_workouts, performed_from:datetime, performed_to:d
                     'reps': ws.reps,
                     'weight': ws.weight,
                 })
-    print(results)
-    print(len(results))
-    
     return {
+        'next': next_url,
+        'previous': previous_url,
         'count': len(results),
         'results': results,
     }

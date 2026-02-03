@@ -1108,7 +1108,6 @@ class PrivateAuthApiTests(APITestCase):
         }
 
         # test for exercise 1
-
         res = self.client.get(INSIGHTS_EXERCISE_SERIES_URL, insights_payload)
         data = res.data.get('results', res.data.get('data', res.data))
         points = data['points']
@@ -1125,91 +1124,434 @@ class PrivateAuthApiTests(APITestCase):
         change = abs(workout2_exercise1_tonnage - workout1_exercise1_tonnage)
         self.assertEqual(change, summary['change'])
 
-    def test_weekly_volume_for_exercise(self):
+    def test_export_sets_insights(self):
         duration = 12 # weeks
         self.client.force_authenticate(self.user)
         current_datetime = timezone.make_aware(datetime(2026, 1, 27, 12, 0, 0))
         previous_time_marker = current_datetime - timedelta(days=31)
         post_time_marker = current_datetime + timedelta(days=10)
-        workout_payload = {
+        workout_payload1 = {
             'user': self.user,
             'performed_at': current_datetime.isoformat()
         }
-        workout = create_workout(**workout_payload)
-        exercise = create_exercise()
-        workout_exercise_payload = {
-            'workout':workout.id,
-            'exercise':exercise.id,
+        workout1 = create_workout(**workout_payload1)
+        exercise1 = create_exercise()
+        exercise2 = create_exercise(**{
+            'name':'exercise2'
+        })
+        workout1_exercise_payload1 = {
+            'workout':workout1.id,
+            'exercise':exercise1.id,
             'order': 1,
         }
 
-        res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
-        data = res.data.get('results', res.data.get('data', res.data))
-
-        workout_set_payload = {
-            'workout_exercise': data['id'],
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout1_exercise_payload1)
+        data_workout1_exercise_payload1 = res.data.get('results', res.data.get('data', res.data))
+        workout1_set_payload1 = {
+            'workout_exercise': data_workout1_exercise_payload1['id'],
             'set_number':1,
             'reps':8,
             'weight':135
         }
 
-        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+        res = self.client.post(WORKOUT_SET_URL, workout1_set_payload1)
+        data_workout1_set_payload1 = res.data.get('results', res.data.get('data', res.data))
 
-        workout_set_payload = {
-            'workout_exercise': data['id'],
+        workout1_set_payload2 = {
+            'workout_exercise': data_workout1_exercise_payload1['id'],
             'set_number':2,
             'reps':1,
             'weight':175
         }
 
-        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+        res = self.client.post(WORKOUT_SET_URL, workout1_set_payload2)
+        data_workout1_set_payload2 = res.data.get('results', res.data.get('data', res.data))
 
-        workout_payload = {
+
+        workout1_exercise_payload2 = {
+            'workout':workout1.id,
+            'exercise':exercise2.id,
+            'order': 2,
+        }
+
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout1_exercise_payload2)
+        data_workout1_exercise_payload2 = res.data.get('results', res.data.get('data', res.data))
+        workout1_ex2_set_payload1 = {
+            'workout_exercise': data_workout1_exercise_payload2['id'],
+            'set_number':1,
+            'reps':8,
+            'weight':135
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout1_ex2_set_payload1)
+        data_workout1_ex2_set_payload1 = res.data.get('results', res.data.get('data', res.data))
+
+        workout1_ex2_set_payload2 = {
+            'workout_exercise': data_workout1_exercise_payload2['id'],
+            'set_number':2,
+            'reps':1,
+            'weight':175
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout1_ex2_set_payload2)
+        data_workout1_ex2_set_payload2 = res.data.get('results', res.data.get('data', res.data))
+
+
+        workout_payload2 = {
             'user': self.user,
             'performed_at': previous_time_marker.isoformat()
         }
-        workout_2 = create_workout(**workout_payload)
-        workout_exercise_payload = {
+        workout_2 = create_workout(**workout_payload2)
+        workout2_exercise_payload1 = {
             'workout':workout_2.id,
-            'exercise':exercise.id,
+            'exercise':exercise1.id,
             'order': 1,
         }
 
-        res = self.client.post(WORKOUT_EXERCISE_URL, workout_exercise_payload)
-        data = res.data.get('results', res.data.get('data', res.data))
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout2_exercise_payload1)
+        data_workout2_exercise_payload1 = res.data.get('results', res.data.get('data', res.data))
 
-        workout_set_payload = {
-            'workout_exercise': data['id'],
+        workout2_set_payload1 = {
+            'workout_exercise': data_workout2_exercise_payload1['id'],
             'set_number':1,
             'reps':3,
             'weight':155
         }
 
-        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
+        res = self.client.post(WORKOUT_SET_URL, workout2_set_payload1)
+        data_workout2_set_payload1 = res.data.get('results', res.data.get('data', res.data))
 
-        workout_set_payload = {
-            'workout_exercise': data['id'],
+        workout2_set_payload2 = {
+            'workout_exercise': data_workout2_exercise_payload1['id'],
             'set_number':2,
             'reps':1,
             'weight':190
         }
         
-        res = self.client.post(WORKOUT_SET_URL, workout_set_payload)
-
-        workout_volume_payload = {
-            'exercise_id': exercise.id,
-            'weeks': duration,
-            'to':current_datetime.strftime('%Y-%m-%d')
-        }
+        res = self.client.post(WORKOUT_SET_URL, workout2_set_payload2)
+        data_workout2_set_payload2 = res.data.get('results', res.data.get('data', res.data))
 
         insights_payload = {
-            'exercise_id': exercise.id,
             'performed_from':previous_time_marker.strftime('%Y-%m-%d'),
             'performed_to':current_datetime.strftime('%Y-%m-%d')
         }
 
-        print(INSIGHTS_EXPORT_SETS_URL)
         res = self.client.get(INSIGHTS_EXPORT_SETS_URL, insights_payload)
         data = res.data.get('results', res.data.get('data', res.data))
-        print(data)
+        dt_object = datetime.fromisoformat(workout1.performed_at)
+        performed_date_string = dt_object.date()
 
+        self.assertEqual('/api/insightsexport_sets/?page=1&page_size=200',res.data.get('next'))
+        self.assertFalse(res.data.get('previous'))
+        self.assertEqual(6, len(data))
+        self.assertEqual(data[0]['workout_id'], workout1.id)
+        self.assertEqual(data[0]['performed_at'], performed_date_string.strftime('%Y-%m-%d'))
+        self.assertEqual(data[0]['exercise_id'], exercise1.id)
+        self.assertEqual(data[0]['exercise_name'], exercise1.name)
+        self.assertEqual(data[0]['workout_exercise_id'], data_workout1_exercise_payload1['id'])
+        self.assertEqual(data[0]['order'], data_workout1_exercise_payload1['order'])
+        self.assertEqual(data[0]['set_id'], data_workout1_set_payload1['id'])
+        self.assertEqual(data[0]['set_number'], data_workout1_set_payload1['set_number'])
+        self.assertEqual(data[0]['reps'], data_workout1_set_payload1['reps'])
+        self.assertEqual(data[0]['weight'], Decimal(data_workout1_set_payload1['weight']))
+
+        self.assertEqual(data[1]['workout_id'], workout1.id)
+        self.assertEqual(data[1]['performed_at'], performed_date_string.strftime('%Y-%m-%d'))
+        self.assertEqual(data[1]['exercise_id'], exercise1.id)
+        self.assertEqual(data[1]['exercise_name'], exercise1.name)
+        self.assertEqual(data[1]['workout_exercise_id'], data_workout1_exercise_payload1['id'])
+        self.assertEqual(data[1]['order'], data_workout1_exercise_payload1['order'])
+        self.assertEqual(data[1]['set_id'], data_workout1_set_payload2['id'])
+        self.assertEqual(data[1]['set_number'], data_workout1_set_payload2['set_number'])
+        self.assertEqual(data[1]['reps'], data_workout1_set_payload2['reps'])
+        self.assertEqual(data[1]['weight'], Decimal(data_workout1_set_payload2['weight']))
+
+        self.assertEqual(data[2]['workout_id'], workout1.id)
+        self.assertEqual(data[2]['performed_at'], performed_date_string.strftime('%Y-%m-%d'))
+        self.assertEqual(data[2]['exercise_id'], exercise2.id)
+        self.assertEqual(data[2]['exercise_name'], exercise2.name)
+        self.assertEqual(data[2]['workout_exercise_id'], data_workout1_exercise_payload2['id'])
+        self.assertEqual(data[2]['order'], data_workout1_exercise_payload2['order'])
+        self.assertEqual(data[2]['set_id'], data_workout1_ex2_set_payload1['id'])
+        self.assertEqual(data[2]['set_number'], data_workout1_ex2_set_payload1['set_number'])
+        self.assertEqual(data[2]['reps'], data_workout1_ex2_set_payload1['reps'])
+        self.assertEqual(data[2]['weight'], Decimal(data_workout1_ex2_set_payload1['weight']))
+
+        self.assertEqual(data[3]['workout_id'], workout1.id)
+        self.assertEqual(data[3]['performed_at'], performed_date_string.strftime('%Y-%m-%d'))
+        self.assertEqual(data[3]['exercise_id'], exercise2.id)
+        self.assertEqual(data[3]['exercise_name'], exercise2.name)
+        self.assertEqual(data[3]['workout_exercise_id'], data_workout1_exercise_payload2['id'])
+        self.assertEqual(data[3]['order'], data_workout1_exercise_payload2['order'])
+        self.assertEqual(data[3]['set_id'], data_workout1_ex2_set_payload2['id'])
+        self.assertEqual(data[3]['set_number'], data_workout1_ex2_set_payload2['set_number'])
+        self.assertEqual(data[3]['reps'], data_workout1_ex2_set_payload2['reps'])
+        self.assertEqual(data[3]['weight'], Decimal(data_workout1_ex2_set_payload2['weight']))
+
+        self.assertEqual(data[4]['workout_id'], workout_2.id)
+        self.assertEqual(data[4]['performed_at'], previous_time_marker.date().strftime('%Y-%m-%d'))
+        self.assertEqual(data[4]['exercise_id'], exercise1.id)
+        self.assertEqual(data[4]['exercise_name'], exercise1.name)
+        self.assertEqual(data[4]['workout_exercise_id'], data_workout2_exercise_payload1['id'])
+        self.assertEqual(data[4]['order'], data_workout2_exercise_payload1['order'])
+        self.assertEqual(data[4]['set_id'], data_workout2_set_payload1['id'])
+        self.assertEqual(data[4]['set_number'], data_workout2_set_payload1['set_number'])
+        self.assertEqual(data[4]['reps'], data_workout2_set_payload1['reps'])
+        self.assertEqual(data[4]['weight'], Decimal(data_workout2_set_payload1['weight']))
+
+        self.assertEqual(data[5]['workout_id'], workout_2.id)
+        self.assertEqual(data[5]['performed_at'], previous_time_marker.date().strftime('%Y-%m-%d'))
+        self.assertEqual(data[5]['exercise_id'], exercise1.id)
+        self.assertEqual(data[5]['exercise_name'], exercise1.name)
+        self.assertEqual(data[5]['workout_exercise_id'], data_workout2_exercise_payload1['id'])
+        self.assertEqual(data[5]['order'], data_workout2_exercise_payload1['order'])
+        self.assertEqual(data[5]['set_id'], data_workout2_set_payload2['id'])
+        self.assertEqual(data[5]['set_number'], data_workout2_set_payload2['set_number'])
+        self.assertEqual(data[5]['reps'], data_workout2_set_payload2['reps'])
+        self.assertEqual(data[5]['weight'], Decimal(data_workout2_set_payload2['weight']))
+
+    def test_export_sets_insights_exercise_1(self):
+        duration = 12 # weeks
+        self.client.force_authenticate(self.user)
+        current_datetime = timezone.make_aware(datetime(2026, 1, 27, 12, 0, 0))
+        previous_time_marker = current_datetime - timedelta(days=31)
+        post_time_marker = current_datetime + timedelta(days=10)
+        workout_payload1 = {
+            'user': self.user,
+            'performed_at': current_datetime.isoformat()
+        }
+        workout1 = create_workout(**workout_payload1)
+        exercise1 = create_exercise()
+        workout1_exercise_payload1 = {
+            'workout':workout1.id,
+            'exercise':exercise1.id,
+            'order': 1,
+        }
+
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout1_exercise_payload1)
+        data_workout1_exercise_payload1 = res.data.get('results', res.data.get('data', res.data))
+        workout1_set_payload1 = {
+            'workout_exercise': data_workout1_exercise_payload1['id'],
+            'set_number':1,
+            'reps':8,
+            'weight':135
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout1_set_payload1)
+        data_workout1_set_payload1 = res.data.get('results', res.data.get('data', res.data))
+
+        workout1_set_payload2 = {
+            'workout_exercise': data_workout1_exercise_payload1['id'],
+            'set_number':2,
+            'reps':1,
+            'weight':175
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout1_set_payload2)
+        data_workout1_set_payload2 = res.data.get('results', res.data.get('data', res.data))
+
+        workout_payload2 = {
+            'user': self.user,
+            'performed_at': previous_time_marker.isoformat()
+        }
+        workout_2 = create_workout(**workout_payload2)
+        workout2_exercise_payload1 = {
+            'workout':workout_2.id,
+            'exercise':exercise1.id,
+            'order': 1,
+        }
+
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout2_exercise_payload1)
+        data_workout2_exercise_payload1 = res.data.get('results', res.data.get('data', res.data))
+
+        workout2_set_payload1 = {
+            'workout_exercise': data_workout2_exercise_payload1['id'],
+            'set_number':1,
+            'reps':3,
+            'weight':155
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout2_set_payload1)
+        data_workout2_set_payload1 = res.data.get('results', res.data.get('data', res.data))
+
+        workout2_set_payload2 = {
+            'workout_exercise': data_workout2_exercise_payload1['id'],
+            'set_number':2,
+            'reps':1,
+            'weight':190
+        }
+        
+        res = self.client.post(WORKOUT_SET_URL, workout2_set_payload2)
+        data_workout2_set_payload2 = res.data.get('results', res.data.get('data', res.data))
+
+        insights_payload = {
+            'exercise_id': exercise1.id,
+            'performed_from':previous_time_marker.strftime('%Y-%m-%d'),
+            'performed_to':current_datetime.strftime('%Y-%m-%d')
+        }
+
+        res = self.client.get(INSIGHTS_EXPORT_SETS_URL, insights_payload)
+        data = res.data.get('results', res.data.get('data', res.data))
+
+        dt_object = datetime.fromisoformat(workout1.performed_at)
+        performed_date_string = dt_object.date()
+
+        self.assertEqual('/api/insightsexport_sets/?page=1&page_size=200',res.data.get('next'))
+        self.assertFalse(res.data.get('previous'))
+        self.assertEqual(4, len(data))
+        self.assertEqual(data[0]['workout_id'], workout1.id)
+        self.assertEqual(data[0]['performed_at'], performed_date_string.strftime('%Y-%m-%d'))
+        self.assertEqual(data[0]['exercise_id'], exercise1.id)
+        self.assertEqual(data[0]['exercise_name'], exercise1.name)
+        self.assertEqual(data[0]['workout_exercise_id'], data_workout1_exercise_payload1['id'])
+        self.assertEqual(data[0]['order'], data_workout1_exercise_payload1['order'])
+        self.assertEqual(data[0]['set_id'], data_workout1_set_payload1['id'])
+        self.assertEqual(data[0]['set_number'], data_workout1_set_payload1['set_number'])
+        self.assertEqual(data[0]['reps'], data_workout1_set_payload1['reps'])
+        self.assertEqual(data[0]['weight'], Decimal(data_workout1_set_payload1['weight']))
+
+        self.assertEqual(data[1]['workout_id'], workout1.id)
+        self.assertEqual(data[1]['performed_at'], performed_date_string.strftime('%Y-%m-%d'))
+        self.assertEqual(data[1]['exercise_id'], exercise1.id)
+        self.assertEqual(data[1]['exercise_name'], exercise1.name)
+        self.assertEqual(data[1]['workout_exercise_id'], data_workout1_exercise_payload1['id'])
+        self.assertEqual(data[1]['order'], data_workout1_exercise_payload1['order'])
+        self.assertEqual(data[1]['set_id'], data_workout1_set_payload2['id'])
+        self.assertEqual(data[1]['set_number'], data_workout1_set_payload2['set_number'])
+        self.assertEqual(data[1]['reps'], data_workout1_set_payload2['reps'])
+        self.assertEqual(data[1]['weight'], Decimal(data_workout1_set_payload2['weight']))
+
+        self.assertEqual(data[2]['workout_id'], workout_2.id)
+        self.assertEqual(data[2]['performed_at'], previous_time_marker.date().strftime('%Y-%m-%d'))
+        self.assertEqual(data[2]['exercise_id'], exercise1.id)
+        self.assertEqual(data[2]['exercise_name'], exercise1.name)
+        self.assertEqual(data[2]['workout_exercise_id'], data_workout2_exercise_payload1['id'])
+        self.assertEqual(data[2]['order'], data_workout2_exercise_payload1['order'])
+        self.assertEqual(data[2]['set_id'], data_workout2_set_payload1['id'])
+        self.assertEqual(data[2]['set_number'], data_workout2_set_payload1['set_number'])
+        self.assertEqual(data[2]['reps'], data_workout2_set_payload1['reps'])
+        self.assertEqual(data[2]['weight'], Decimal(data_workout2_set_payload1['weight']))
+
+        self.assertEqual(data[3]['workout_id'], workout_2.id)
+        self.assertEqual(data[3]['performed_at'], previous_time_marker.date().strftime('%Y-%m-%d'))
+        self.assertEqual(data[3]['exercise_id'], exercise1.id)
+        self.assertEqual(data[3]['exercise_name'], exercise1.name)
+        self.assertEqual(data[3]['workout_exercise_id'], data_workout2_exercise_payload1['id'])
+        self.assertEqual(data[3]['order'], data_workout2_exercise_payload1['order'])
+        self.assertEqual(data[3]['set_id'], data_workout2_set_payload2['id'])
+        self.assertEqual(data[3]['set_number'], data_workout2_set_payload2['set_number'])
+        self.assertEqual(data[3]['reps'], data_workout2_set_payload2['reps'])
+        self.assertEqual(data[3]['weight'], Decimal(data_workout2_set_payload2['weight']))
+
+    def test_export_sets_insights_exercise_2(self):
+        duration = 12 # weeks
+        self.client.force_authenticate(self.user)
+        current_datetime = timezone.make_aware(datetime(2026, 1, 27, 12, 0, 0))
+        previous_time_marker = current_datetime - timedelta(days=31)
+        post_time_marker = current_datetime + timedelta(days=10)
+        workout_payload1 = {
+            'user': self.user,
+            'performed_at': current_datetime.isoformat()
+        }
+        workout1 = create_workout(**workout_payload1)
+        exercise1 = create_exercise()
+        exercise2 = create_exercise(**{
+            'name':'exercise2'
+        })
+        workout1_exercise_payload1 = {
+            'workout':workout1.id,
+            'exercise':exercise1.id,
+            'order': 1,
+        }
+
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout1_exercise_payload1)
+        data_workout1_exercise_payload1 = res.data.get('results', res.data.get('data', res.data))
+        workout1_set_payload1 = {
+            'workout_exercise': data_workout1_exercise_payload1['id'],
+            'set_number':1,
+            'reps':8,
+            'weight':135
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout1_set_payload1)
+        data_workout1_set_payload1 = res.data.get('results', res.data.get('data', res.data))
+
+        workout1_set_payload2 = {
+            'workout_exercise': data_workout1_exercise_payload1['id'],
+            'set_number':2,
+            'reps':1,
+            'weight':175
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout1_set_payload2)
+        data_workout1_set_payload2 = res.data.get('results', res.data.get('data', res.data))
+
+        workout_payload2 = {
+            'user': self.user,
+            'performed_at': previous_time_marker.isoformat()
+        }
+        workout_2 = create_workout(**workout_payload2)
+        workout2_exercise_payload1 = {
+            'workout':workout_2.id,
+            'exercise':exercise2.id,
+            'order': 1,
+        }
+
+        res = self.client.post(WORKOUT_EXERCISE_URL, workout2_exercise_payload1)
+        data_workout2_exercise_payload1 = res.data.get('results', res.data.get('data', res.data))
+
+        workout2_set_payload1 = {
+            'workout_exercise': data_workout2_exercise_payload1['id'],
+            'set_number':1,
+            'reps':3,
+            'weight':155
+        }
+
+        res = self.client.post(WORKOUT_SET_URL, workout2_set_payload1)
+        data_workout2_set_payload1 = res.data.get('results', res.data.get('data', res.data))
+
+        workout2_set_payload2 = {
+            'workout_exercise': data_workout2_exercise_payload1['id'],
+            'set_number':2,
+            'reps':1,
+            'weight':190
+        }
+        
+        res = self.client.post(WORKOUT_SET_URL, workout2_set_payload2)
+        data_workout2_set_payload2 = res.data.get('results', res.data.get('data', res.data))
+
+        insights_payload = {
+            'exercise_id': exercise2.id,
+            'performed_from':previous_time_marker.strftime('%Y-%m-%d'),
+            'performed_to':current_datetime.strftime('%Y-%m-%d')
+        }
+
+        res = self.client.get(INSIGHTS_EXPORT_SETS_URL, insights_payload)
+        data = res.data.get('results', res.data.get('data', res.data))
+        dt_object = datetime.fromisoformat(workout1.performed_at)
+        performed_date_string = dt_object.date()
+
+        self.assertEqual('/api/insightsexport_sets/?page=1&page_size=200',res.data.get('next'))
+        self.assertFalse(res.data.get('previous'))
+        self.assertEqual(2, len(data))
+        self.assertEqual(data[0]['workout_id'], workout_2.id)
+        self.assertEqual(data[0]['performed_at'], previous_time_marker.date().strftime('%Y-%m-%d'))
+        self.assertEqual(data[0]['exercise_id'], exercise2.id)
+        self.assertEqual(data[0]['exercise_name'], exercise2.name)
+        self.assertEqual(data[0]['workout_exercise_id'], data_workout2_exercise_payload1['id'])
+        self.assertEqual(data[0]['order'], data_workout2_exercise_payload1['order'])
+        self.assertEqual(data[0]['set_id'], data_workout2_set_payload1['id'])
+        self.assertEqual(data[0]['set_number'], data_workout2_set_payload1['set_number'])
+        self.assertEqual(data[0]['reps'], data_workout2_set_payload1['reps'])
+        self.assertEqual(data[0]['weight'], Decimal(data_workout2_set_payload1['weight']))
+
+        self.assertEqual(data[1]['workout_id'], workout_2.id)
+        self.assertEqual(data[1]['performed_at'], previous_time_marker.date().strftime('%Y-%m-%d'))
+        self.assertEqual(data[1]['exercise_id'], exercise2.id)
+        self.assertEqual(data[1]['exercise_name'], exercise2.name)
+        self.assertEqual(data[1]['workout_exercise_id'], data_workout2_exercise_payload1['id'])
+        self.assertEqual(data[1]['order'], data_workout2_exercise_payload1['order'])
+        self.assertEqual(data[1]['set_id'], data_workout2_set_payload2['id'])
+        self.assertEqual(data[1]['set_number'], data_workout2_set_payload2['set_number'])
+        self.assertEqual(data[1]['reps'], data_workout2_set_payload2['reps'])
+        self.assertEqual(data[1]['weight'], Decimal(data_workout2_set_payload2['weight']))

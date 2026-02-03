@@ -1,14 +1,23 @@
 from django.db.models import Prefetch
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from rest_framework import viewsets, permissions, filters
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from workouts.models import Workout, WorkoutExercise, WorkoutSet
 from .serializers import InsightsDateRangeQuerySerializer, InsightsWeeklyVolumeSerializer, InsightsExportSetsSerializer
 from .services import calculate_weekly_top_set, calculate_daily_1_rep_max, calculate_daily_tonnage, calculate_weekly_volume, calculate_export_sets
+
+
+class ExportSetsPagination(PageNumberPagination):
+    page_query_param = "page"
+    page_size_query_param = "page_size"
+    page_size = 200  
+    max_page_size = 1000
 
 class InsightsExerciseSeriesViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -91,7 +100,7 @@ class InsightsExportSetsViewSet(viewsets.ViewSet):
         page = params.get('page')
         page_size = params.get('page_size')
         
-        print('InsightsExportSetsViewSet')
+        INSIGHTS_EXPORT_SETS_URL = reverse("insights:export-sets")
         if exercise_id:
             user_workouts = Workout.objects.filter(user=user, workout_exercises__exercise_id = exercise_id).prefetch_related(
                 Prefetch(
@@ -101,7 +110,7 @@ class InsightsExportSetsViewSet(viewsets.ViewSet):
                 )
             )
         else:
-            user_workouts = Workout.objects.prefetch_related(
+            user_workouts = Workout.objects.filter(user=user).prefetch_related(
                 Prefetch(
                     'workout_exercises',
                     queryset = WorkoutExercise.objects.prefetch_related('workout_sets')
@@ -112,6 +121,8 @@ class InsightsExportSetsViewSet(viewsets.ViewSet):
             user_workouts = user_workouts.filter(performed_at__date__gte=performed_from)
         if performed_to:
             user_workouts = user_workouts.filter(performed_at__date__lte=performed_to)
-        
-        export_sets = calculate_export_sets(user_workouts, performed_from, performed_to, exercise_id)
+
+        paginator = ExportSetsPagination()
+        workouts_page = paginator.paginate_queryset(user_workouts, request, view=self)
+        export_sets = calculate_export_sets(workouts_page, performed_from, performed_to, exercise_id, page, page_size)
         return Response(export_sets)
