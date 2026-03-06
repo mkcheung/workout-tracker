@@ -134,3 +134,20 @@ class WorkoutDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Workout
         fields = ['id', 'workout_exercises', 'notes', 'performed_at', 'created_at', 'updated_at']
+
+class SetWorkoutExercisesSerializer(serializers.Serializer):
+    exercise_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=True
+    )
+
+    def validate_exercise_ids(self, ids):
+        if len(ids) != len(set(ids)):
+            raise serializers.ValidationError("Duplicate exercise ids are not allowed")
+
+        existing = set(Exercise.objects.filter(id__in=ids).values_list('id', flat=True))
+        missing = [ i for i in ids if i not in existing ]
+
+        if missing:
+            raise serializers.ValidationError(f"Invalid exercise ids: {missing}")
+        return ids
