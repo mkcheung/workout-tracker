@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from .serializers import SetWorkoutExercisesSerializer, WorkoutSerializer, WorkoutExerciseSerializer, WorkoutSetSerializer, WorkoutDetailSerializer
+from .serializers import SetWorkoutExercisesAndSetsSerializer, WorkoutSerializer, WorkoutExerciseSerializer, WorkoutSetSerializer, WorkoutDetailSerializer
 from .models import Workout, WorkoutExercise, WorkoutSet
 
 class WorkoutViewSet(viewsets.ModelViewSet):
@@ -40,23 +40,37 @@ class WorkoutViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["put"], url_path="set-exercises")
     def set_exercises(self, request, pk=None):
         workout = self.get_object()
-        req = SetWorkoutExercisesSerializer(data=request.data, context={"request":request})
-        req.is_valid(raise_exception=True)
-        exercise_ids = req.validated_data['exercise_ids']
+
+        serializer = SetWorkoutExercisesAndSetsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        submitted_items = serializer.validated_data["workout_exercises"]
 
         with transaction.atomic():
             WorkoutExercise.objects.filter(workout=workout).delete()
 
-            rows = [
-                WorkoutExercise(workout=workout, exercise_id=ex_id, order = i + 1)
-                for i, ex_id in enumerate(exercise_ids)
-            ]
-            if rows:
-                WorkoutExercise.objects.bulk_create(rows)
-        
-        new_qs = WorkoutExercise.objects.filter(workout=workout).order_by('order')
+            created_workout_exercises = []
+
+            for item in submitted_items:
+                we = WorkoutExercise.objects.create(
+                    workout=workout,
+                    exercise_id=item["exercise_id"],
+                    order=item["order"]
+                )
+
+                sets = item.get("workout_sets", [])
+                for set_item in sets:
+                    WorkoutSet.objects.create(
+                        workout_exercise=we,
+                        set_number=set_item["set_number"],
+                        reps=set_item["reps"],
+                        weight=set_item.get("weight")
+                    )
+
+                created_workout_exercises.append(we)
+
+        refreshed = WorkoutExercise.objects.filter(workout=workout).order_by("order")
         return Response(
-            WorkoutExerciseSerializer(new_qs, many=True, context={"request":request}).data,
+            WorkoutExerciseSerializer(refreshed, many=True).data,
             status=status.HTTP_200_OK
         )
 

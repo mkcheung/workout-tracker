@@ -135,19 +135,13 @@ class WorkoutDetailSerializer(serializers.ModelSerializer):
         model = Workout
         fields = ['id', 'workout_exercises', 'notes', 'performed_at', 'created_at', 'updated_at']
 
-class SetWorkoutExercisesSerializer(serializers.Serializer):
-    exercise_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1),
-        allow_empty=True
-    )
-
-    def validate_exercise_ids(self, ids):
-        if len(ids) != len(set(ids)):
-            raise serializers.ValidationError("Duplicate exercise ids are not allowed")
-
-        existing = set(Exercise.objects.filter(id__in=ids).values_list('id', flat=True))
-        missing = [ i for i in ids if i not in existing ]
-
-        if missing:
-            raise serializers.ValidationError(f"Invalid exercise ids: {missing}")
-        return ids
+class WorkoutSetInputSerializer(serializers.Serializer):
+    set_number = serializers.IntegerField(min_value=1)
+    reps = serializers.IntegerField(min_value=1)
+    weight = serializers.DecimalField(max_digits=6, decimal_places=2, required=False, allow_null=True)
+class WorkoutExerciseInputSerializer(serializers.Serializer):
+    exercise_id = serializers.IntegerField(min_value=1)
+    order = serializers.IntegerField(min_value=1)
+    workout_sets = WorkoutSetInputSerializer(many=True, required=False)
+class SetWorkoutExercisesAndSetsSerializer(serializers.Serializer):
+    workout_exercises = WorkoutExerciseInputSerializer(many=True)
