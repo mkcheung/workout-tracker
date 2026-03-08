@@ -142,6 +142,6 @@ class WorkoutSetInputSerializer(serializers.Serializer):
 class WorkoutExerciseInputSerializer(serializers.Serializer):
     exercise_id = serializers.IntegerField(min_value=1)
     order = serializers.IntegerField(min_value=1)
-    workout_sets = WorkoutSetInputSerializer(many=True, required=False)
+    sets = WorkoutSetInputSerializer(many=True, required=False)
 class SetWorkoutExercisesAndSetsSerializer(serializers.Serializer):
     workout_exercises = WorkoutExerciseInputSerializer(many=True)

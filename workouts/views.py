@@ -40,7 +40,6 @@ class WorkoutViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["put"], url_path="set-exercises")
     def set_exercises(self, request, pk=None):
         workout = self.get_object()
-
         serializer = SetWorkoutExercisesAndSetsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         submitted_items = serializer.validated_data["workout_exercises"]
@@ -57,7 +56,7 @@ class WorkoutViewSet(viewsets.ModelViewSet):
                     order=item["order"]
                 )
 
-                sets = item.get("workout_sets", [])
+                sets = item.get("sets", [])
                 for set_item in sets:
                     WorkoutSet.objects.create(
                         workout_exercise=we,
