@@ -11,7 +11,8 @@ from rest_framework.response import Response
 from workouts.models import Workout, WorkoutExercise, WorkoutSet
 from .serializers import InsightsDateRangeQuerySerializer, InsightsWeeklyVolumeSerializer, InsightsExportSetsSerializer
 from .services import calculate_weekly_top_set, calculate_daily_1_rep_max, calculate_daily_tonnage, calculate_weekly_volume, calculate_export_sets
-
+import logging
+logger = logging.getLogger(__name__)
 
 class ExportSetsPagination(PageNumberPagination):
     page_query_param = "page"

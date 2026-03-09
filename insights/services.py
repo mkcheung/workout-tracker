@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 from django.urls import reverse
@@ -75,36 +76,57 @@ def calculate_weekly_top_set(user_workouts, performed_from:datetime, performed_t
         'summary': summary
     }
 
-def calculate_daily_1_rep_max(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
-    points = []
+def calculate_daily_1_rep_max(user_workouts, performed_from: datetime, performed_to: datetime, exercise_id: int):
+    by_date = defaultdict(list)
+
     for user_workout in user_workouts:
-        daily_1_rep_max = 0
-        weight_from_best_set = 0
-        reps_from_best_set = 0
-        weight_reps_from_best_set = ()
+        workout_date = user_workout.performed_at.strftime('%Y-%m-%d')
+
         for we in user_workout.workout_exercises.all():
+            if we.exercise_id != exercise_id:
+                continue
+
             for ws in we.workout_sets.all():
-                weight_reps_from_best_set = (ws.weight, ws.reps) if ws.weight > weight_from_best_set else (weight_from_best_set,reps_from_best_set)
-        daily_1_rep_max = round(weight_reps_from_best_set[0] * (1 + (weight_reps_from_best_set[1] / Decimal(30))),2)
-        points.append({
-            'date':user_workout.performed_at.strftime('%Y-%m-%d'),
-            'value':daily_1_rep_max
-        })
-    starting_1_rep_max = points[0]['value']
-    latest_1_rep_max = points[-1]['value']
-    change_in_1_rep_max = abs(latest_1_rep_max - starting_1_rep_max)
-    summary = {
-        'start':starting_1_rep_max,
-        'latest':latest_1_rep_max,
-        'change': change_in_1_rep_max
-    }
-    
+                if ws.weight is None or ws.reps is None or ws.reps <= 0:
+                    continue
+
+                est_1rm = ws.weight * (Decimal(1) + (Decimal(ws.reps) / Decimal(30)))
+                by_date[workout_date].append(est_1rm)
+
+    points = [
+        {
+            'date': date,
+            'value': float(round(max(values), 2)),
+        }
+        for date, values in sorted(by_date.items())
+        if values
+    ]
+
+    if not points:
+        summary = {
+            'start': None,
+            'latest': None,
+            'change': None,
+        }
+    elif len(points) == 1:
+        summary = {
+            'start': points[0]['value'],
+            'latest': points[0]['value'],
+            'change': 0.0,
+        }
+    else:
+        summary = {
+            'start': points[0]['value'],
+            'latest': points[-1]['value'],
+            'change': round(points[-1]['value'] - points[0]['value'], 2),
+        }
+
     return {
         'exercise_id': exercise_id,
         'metric': 'estimated_1rm',
-        'unit': 'lbs_reps',
+        'unit': 'lbs',
         'points': points,
-        'summary': summary
+        'summary': summary,
     }
 
 def calculate_daily_tonnage(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
