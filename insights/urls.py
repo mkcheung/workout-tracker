@@ -5,7 +5,7 @@ from .views import InsightsExerciseSeriesViewSet, InsightsWeeklyVolumeViewSet, I
 app_name = "insights"
 
 urlpatterns = [
-    path("exercise_series/", InsightsExerciseSeriesViewSet.as_view({'get':'list'}), name="exercise-series"),
-    path("weekly_volume/", InsightsWeeklyVolumeViewSet.as_view({'get':'list'}), name="weekly-volume"),
-    path("export_sets/", InsightsExportSetsViewSet.as_view({'get':'list'}), name="export-sets")
+    path("exercise-series/", InsightsExerciseSeriesViewSet.as_view({'get':'list'}), name="exercise-series"),
+    path("weekly-volume/", InsightsWeeklyVolumeViewSet.as_view({'get':'list'}), name="weekly-volume"),
+    path("export-sets/", InsightsExportSetsViewSet.as_view({'get':'list'}), name="export-sets"),
 ]
