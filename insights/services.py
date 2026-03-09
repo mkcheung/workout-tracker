@@ -42,38 +42,61 @@ def week_buckets( start: date, end: date, duration: int = None):
 
     return weeks
 
-def calculate_weekly_top_set(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int):
-    wk_buckets = week_buckets(performed_from, performed_to)
-    week_bucket = { week['date']:week for week in wk_buckets }
-    for user_workout in user_workouts:
-        weight_from_best_set = 0
-        for we in user_workout.workout_exercises.all():
-            for ws in we.workout_sets.all():
-                weight_from_best_set = ws.weight if ws.weight > weight_from_best_set else weight_from_best_set
+def calculate_daily_top_set_weight(
+    user_workouts,
+    performed_from: datetime,
+    performed_to: datetime,
+    exercise_id: int,
+):
+    by_date = defaultdict(list)
 
-        week_of_workout = (user_workout.performed_at - timedelta(days=user_workout.performed_at.weekday())).strftime('%Y-%m-%d')
-        week_bucket[week_of_workout]['value'] = max(week_bucket[week_of_workout]['value'], weight_from_best_set)
-    starting_weight = list(week_bucket.values())[0]['value']
-    latest_weight = list(week_bucket.values())[-1]['value']
-    change_in_weight = abs(latest_weight - starting_weight)
-    if not wk_buckets:
+    for user_workout in user_workouts:
+        workout_date = user_workout.performed_at.strftime('%Y-%m-%d')
+
+        for we in user_workout.workout_exercises.all():
+            if we.exercise_id != exercise_id:
+                continue
+
+            for ws in we.workout_sets.all():
+                if ws.weight is None:
+                    continue
+
+                by_date[workout_date].append(ws.weight)
+
+    points = [
+        {
+            'date': date,
+            'value': float(round(max(values), 2)),
+        }
+        for date, values in sorted(by_date.items())
+        if values
+    ]
+
+    if not points:
         summary = {
-            'start':None,
-            'latest':None,
-            'change':None
+            'start': None,
+            'latest': None,
+            'change': None,
+        }
+    elif len(points) == 1:
+        summary = {
+            'start': points[0]['value'],
+            'latest': points[0]['value'],
+            'change': 0.0,
         }
     else:
         summary = {
-            'start':starting_weight,
-            'latest':latest_weight,
-            'change': change_in_weight
+            'start': points[0]['value'],
+            'latest': points[-1]['value'],
+            'change': round(points[-1]['value'] - points[0]['value'], 2),
         }
+
     return {
         'exercise_id': exercise_id,
         'metric': 'top_set_weight',
-        'unit': 'lbs_reps',
-        'points': wk_buckets,
-        'summary': summary
+        'unit': 'lbs',
+        'points': points,
+        'summary': summary,
     }
 
 def calculate_daily_1_rep_max(user_workouts, performed_from: datetime, performed_to: datetime, exercise_id: int):

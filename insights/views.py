@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from workouts.models import Workout, WorkoutExercise, WorkoutSet
 from .serializers import InsightsDateRangeQuerySerializer, InsightsWeeklyVolumeSerializer, InsightsExportSetsSerializer
-from .services import calculate_weekly_top_set, calculate_daily_1_rep_max, calculate_daily_tonnage, calculate_weekly_volume, calculate_export_sets
+from .services import calculate_daily_top_set_weight, calculate_daily_1_rep_max, calculate_daily_tonnage, calculate_weekly_volume, calculate_export_sets
 import logging
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class InsightsExerciseSeriesViewSet(viewsets.ViewSet):
             user_workouts = user_workouts.filter(performed_at__date__lte=performed_to)
         
         if metric == 'top_set_weight':
-            top_set_weight_response = calculate_weekly_top_set(user_workouts, performed_from, performed_to, params.get('exercise_id'))
+            top_set_weight_response = calculate_daily_top_set_weight(user_workouts, performed_from, performed_to, params.get('exercise_id'))
             return Response(top_set_weight_response)
         elif metric == 'estimated_1rm':
             estimated_1_rep_max_response = calculate_daily_1_rep_max(user_workouts, performed_from, performed_to, params.get('exercise_id'))
