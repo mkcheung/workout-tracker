@@ -67,22 +67,35 @@ class InsightsWeeklyVolumeViewSet(viewsets.ViewSet):
 
     def list(self, request):
         user = request.user
+
         weekly_volume_params = InsightsWeeklyVolumeSerializer(data=request.query_params)
         weekly_volume_params.is_valid(raise_exception=True)
         params = weekly_volume_params.validated_data
 
-        exercise_id = params.get('exercise_id')
-        weeks = params.get('weeks')
-        to = params.get('to')
+        exercise_id = params["exercise_id"]
+        weeks = params["weeks"]
+        to = params["to"]
 
-        user_workouts = Workout.objects.filter(user=user, workout_exercises__exercise_id = exercise_id).prefetch_related(
-            Prefetch(
-                'workout_exercises',
-                queryset = WorkoutExercise.objects.filter(exercise_id=params['exercise_id'])
-                .prefetch_related('workout_sets')
+        user_workouts = (
+            Workout.objects
+            .filter(user=user, workout_exercises__exercise_id=exercise_id)
+            .prefetch_related(
+                Prefetch(
+                    "workout_exercises",
+                    queryset=WorkoutExercise.objects
+                    .filter(exercise_id=exercise_id)
+                    .prefetch_related("workout_sets"),
+                )
             )
+            .distinct()
         )
-        weekly_volume_response = calculate_weekly_volume(user_workouts, weeks, to, exercise_id)
+
+        weekly_volume_response = calculate_weekly_volume(
+            user_workouts=user_workouts,
+            duration=weeks,
+            to=to,
+            exercise_id=exercise_id,
+        )
         return Response(weekly_volume_response)
         
 
@@ -91,39 +104,45 @@ class InsightsExportSetsViewSet(viewsets.ViewSet):
 
     def list(self, request):
         user = request.user
+
         export_sets_params = InsightsExportSetsSerializer(data=request.query_params)
         export_sets_params.is_valid(raise_exception=True)
         params = export_sets_params.validated_data
 
-        performed_from = params.get('performed_from')
-        performed_to = params.get('performed_to')
-        exercise_id = params.get('exercise_id')
-        page = params.get('page')
-        page_size = params.get('page_size')
-        
-        INSIGHTS_EXPORT_SETS_URL = reverse("insights:export-sets")
+        performed_from = params.get("performed_from")
+        performed_to = params.get("performed_to")
+        exercise_id = params.get("exercise_id")
+
+        workout_exercises_qs = (
+            WorkoutExercise.objects
+            .select_related("exercise")
+            .prefetch_related("workout_sets")
+        )
+
         if exercise_id:
-            user_workouts = Workout.objects.filter(user=user, workout_exercises__exercise_id = exercise_id).prefetch_related(
-                Prefetch(
-                    'workout_exercises',
-                    queryset = WorkoutExercise.objects.filter(exercise_id=params['exercise_id'])
-                    .prefetch_related('workout_sets')
-                )
+            workout_exercises_qs = workout_exercises_qs.filter(exercise_id=exercise_id)
+
+        user_workouts = (
+            Workout.objects
+            .filter(user=user)
+            .order_by("performed_at", "id")
+            .prefetch_related(
+                Prefetch("workout_exercises", queryset=workout_exercises_qs.order_by("order", "id"))
             )
-        else:
-            user_workouts = Workout.objects.filter(user=user).prefetch_related(
-                Prefetch(
-                    'workout_exercises',
-                    queryset = WorkoutExercise.objects.prefetch_related('workout_sets')
-                )
-            )
-        
+        )
+
         if performed_from:
             user_workouts = user_workouts.filter(performed_at__date__gte=performed_from)
         if performed_to:
             user_workouts = user_workouts.filter(performed_at__date__lte=performed_to)
 
+        flat_rows = calculate_export_sets(
+            user_workouts=user_workouts,
+            performed_from=performed_from,
+            performed_to=performed_to,
+            exercise_id=exercise_id,
+        )
+
         paginator = ExportSetsPagination()
-        workouts_page = paginator.paginate_queryset(user_workouts, request, view=self)
-        export_sets = calculate_export_sets(workouts_page, performed_from, performed_to, exercise_id, page, page_size)
-        return Response(export_sets)
+        page = paginator.paginate_queryset(flat_rows, request, view=self)
+        return paginator.get_paginated_response(page)

@@ -18,14 +18,16 @@ class InsightsDateRangeQuerySerializer(serializers.Serializer):
 
 class InsightsWeeklyVolumeSerializer(serializers.Serializer):
     exercise_id = serializers.IntegerField(required=True)
+
     weeks = serializers.IntegerField(
-        required=False, 
+        required=False,
         default=12,
-        validators=[MinValueValidator(1), MaxValueValidator(52)]
+        validators=[MinValueValidator(1), MaxValueValidator(52)],
     )
+
     to = serializers.DateField(
         required=False,
-        default=timezone.now(),
+        default=timezone.localdate,
         input_formats=["%Y-%m-%d"],
     )
 
@@ -33,22 +35,26 @@ class InsightsExportSetsSerializer(serializers.Serializer):
     performed_from = serializers.DateField(required=False, input_formats=["%Y-%m-%d"])
     performed_to = serializers.DateField(required=False, input_formats=["%Y-%m-%d"])
     exercise_id = serializers.IntegerField(required=False)
+
     page = serializers.IntegerField(
         required=False,
-        default=1
+        default=1,
+        validators=[MinValueValidator(1)],
     )
+
     page_size = serializers.IntegerField(
         required=False,
         default=200,
-        validators=[MinValueValidator(1), MaxValueValidator(500)]
+        validators=[MinValueValidator(1), MaxValueValidator(500)],
     )
-    weeks = serializers.IntegerField(
-        required=False, 
-        default=12,
-        validators=[MinValueValidator(1), MaxValueValidator(52)]
-    )
-    to = serializers.DateField(
-        required=False,
-        default=timezone.now(),
-        input_formats=["%Y-%m-%d"],
-    )
+
+    def validate(self, attrs):
+        performed_from = attrs.get("performed_from")
+        performed_to = attrs.get("performed_to")
+
+        if performed_from and performed_to and performed_to < performed_from:
+            raise serializers.ValidationError({
+                "performed_to": ["performed_to must be greater than or equal to performed_from."]
+            })
+
+        return attrs

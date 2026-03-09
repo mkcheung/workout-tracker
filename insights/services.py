@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 from django.urls import reverse
@@ -168,6 +168,7 @@ def calculate_daily_tonnage(user_workouts, performed_from: datetime, performed_t
                     continue
 
                 by_date[workout_date] += float(ws.weight * ws.reps)
+
     points = [
         {
             'date': date,
@@ -199,53 +200,67 @@ def calculate_daily_tonnage(user_workouts, performed_from: datetime, performed_t
         'summary': summary,
     }
 
-def calculate_weekly_volume(user_workouts, duration:int, to:datetime, exercise_id:int):
+def calculate_weekly_volume(user_workouts, duration: int, to, exercise_id: int):
     wk_buckets = week_buckets(None, to, duration)
-    points = { week['week_start']:week for week in wk_buckets}
-    print(points)
+
+    points_by_week = OrderedDict(
+        (week["week_start"], {"week_start": week["week_start"], "value": 0.0})
+        for week in wk_buckets
+    )
+
     for user_workout in user_workouts:
-        weekly_tonnage = 0
+        week_of_workout = (
+            user_workout.performed_at - timedelta(days=user_workout.performed_at.weekday())
+        ).strftime("%Y-%m-%d")
+
+        if week_of_workout not in points_by_week:
+            continue
+
         for we in user_workout.workout_exercises.all():
+            if we.exercise_id != exercise_id:
+                continue
+
             for ws in we.workout_sets.all():
-                weekly_tonnage += ws.weight * ws.reps
-        week_of_workout = (user_workout.performed_at - timedelta(days=user_workout.performed_at.weekday())).strftime('%Y-%m-%d')
-        points[week_of_workout]['value'] += weekly_tonnage
-    
+                if ws.weight is None or ws.reps is None:
+                    continue
+
+                points_by_week[week_of_workout]["value"] += float(ws.weight * ws.reps)
+
+    points = [
+        {
+            "week_start": week_start,
+            "value": round(point["value"], 2),
+        }
+        for week_start, point in points_by_week.items()
+    ]
+
     return {
-        'exercise_id': exercise_id,
-        'unit': 'lbs_reps',
-        'weeks': duration,
-        'points': points,
+        "exercise_id": exercise_id,
+        "unit": "lbs_reps",
+        "weeks": duration,
+        "points": points,
     }
 
-def calculate_export_sets(user_workouts, performed_from:datetime, performed_to:datetime, exercise_id:int, page:int = 1, page_size:int = 200):
+def calculate_export_sets(user_workouts, performed_from: datetime, performed_to: datetime, exercise_id: int):
     results = []
-    if (page and page > 1):
-        next_url = reverse("insights:export-sets") + f"?page={page}&page_size={page_size}"
-        previous_url = reverse("insights:export-sets") + f"?page={page-1}&page_size={page_size}"
-    else:
-        next_url = reverse("insights:export-sets") + f"?page=1&page_size={page_size}"
-        previous_url = None
 
-    
     for user_workout in user_workouts:
         for we in user_workout.workout_exercises.all():
+            if exercise_id and we.exercise_id != exercise_id:
+                continue
+
             for ws in we.workout_sets.all():
                 results.append({
-                    'workout_id': we.workout.id,
-                    'performed_at': user_workout.performed_at.strftime('%Y-%m-%d'),
-                    'exercise_id': we.exercise.id,
-                    'exercise_name': we.exercise.name,
-                    'workout_exercise_id': we.id,
-                    'order': we.order,
-                    'set_id': ws.id,
-                    'set_number': ws.set_number,
-                    'reps': ws.reps,
-                    'weight': ws.weight,
+                    "workout_id": user_workout.id,
+                    "performed_at": user_workout.performed_at.isoformat(),
+                    "exercise_id": we.exercise_id,
+                    "exercise_name": we.exercise.name,
+                    "workout_exercise_id": we.id,
+                    "order": we.order,
+                    "set_id": ws.id,
+                    "set_number": ws.set_number,
+                    "reps": ws.reps,
+                    "weight": float(ws.weight) if ws.weight is not None else None,
                 })
-    return {
-        'next': next_url,
-        'previous': previous_url,
-        'count': len(results),
-        'results': results,
-    }
+
+    return results
